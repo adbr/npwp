@@ -1,0 +1,10 @@
+2014-06-26
+
+input.txt
+	plik z tekstem wejściowym - tekst acsii z różnymi kombinacjami znaków
+	tabulacji.
+expected.txt
+	plik wynikowy uzyskany z input.txt systemowym poleceniem expand -
+	wzorzec do porównywania z wynikiem polecenia detab.
+output.txt
+	plik wynikowy uzyskany z input.txt poleceniem detab.
