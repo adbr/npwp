@@ -1,0 +1,8 @@
+Pliki testowe
+
+a.txt b.txt	pliki o tej samej długości, różniące się
+a1.txt b1.txt	pliki puste
+a2.txt b2.txt	plik a2.txt krótszy
+a3.txt b3.txt	plik b3.txt krótszy
+a4.txt b4.txt	pliki jednowierszowe bez \n na końcu, różniące się
+a5.txt b5.txt	pliki jednakowe
