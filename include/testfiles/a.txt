@@ -1,0 +1,8 @@
+aaaaa aaaa aaa aa a
+aaaaa aaaa aaa aa a
+#include "b.txt" xxxxxx
+aaaaa aaaa aaa aa a
+aaaaa aaaa aaa aa a
+aaaaa aaaa aaa aa a
+	#include   "c.txt"
+aaaaa aaaa aaa aa a

@@ -1,0 +1,5 @@
+bbbbbb bbbbb bbbb bbb bbb bb b b
+bbbbbb bbbbb bbbb bbb bbb bb b b
+#include "c.txt"
+bbbbbb bbbbb bbbb bbb bbb bb b b
+bbbbbb bbbbb bbbb bbb bbb bb b b
