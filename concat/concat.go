@@ -1,7 +1,7 @@
 // 2014-09-03 Adam Bryt
 
 // Narzędzia Programistyczne w Pascalu,
-// rozdział 3.4 "Konkatenacja plików"
+// rozdział 3.4 "Konkatenacja plików",
 // program concat.
 //
 // NAZWA
@@ -63,7 +63,13 @@ func main() {
 		if err != nil {
 			fatal(err)
 		}
+
 		_, err = io.Copy(os.Stdout, file)
+		if err != nil {
+			fatal(err)
+		}
+
+		err = file.Close()
 		if err != nil {
 			fatal(err)
 		}
