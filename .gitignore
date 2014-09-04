@@ -14,3 +14,5 @@ wordcount/wordcount
 compare/compare
 include/include
 concat/concat
+print/print
+print/gen/gen
