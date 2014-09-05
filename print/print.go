@@ -1,4 +1,6 @@
 // 2014-09-04 Adam Bryt
+// todo
+//	- dodać wyświetlanie daty w nagłówku
 
 // Narzędzia Programistyczne w Pascalu,
 // rozdział 3.5 "Redaktor wydruków",
@@ -9,6 +11,8 @@
 // print - drukuje pliki z nagłówkami
 //
 // SPOSÓB UŻYCIA
+//
+// print [file ...]
 //
 // OPIS
 //
@@ -23,6 +27,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"time"
 )
 
 func usage() {
@@ -35,59 +40,40 @@ func fatal(err error) {
 	os.Exit(2)
 }
 
-func skip(w io.Writer, n int) error {
+func skip(n int) {
 	for i := 0; i < n; i++ {
-		_, err := fmt.Fprintf(w, "\n")
-		if err != nil {
-			return err
-		}
+		fmt.Printf("\n")
 	}
-	return nil
 }
 
-func head(w io.Writer, name string, page int) error {
-	_, err := fmt.Fprintf(w, "%s page %d\n", name, page)
-	if err != nil {
-		return err
-	}
-	return nil
+func head(name string, page int) {
+	const format = "2006-01-02 15:04"
+	t := time.Now().Format(format)
+
+	fmt.Printf("%s  %s  page %d\n", name, t, page)
 }
 
-func print(w io.Writer, r io.Reader, fname string) error {
-	bw := bufio.NewWriter(w)
-	defer bw.Flush()
+func print(r io.Reader, fname string) error {
 	br := bufio.NewReader(r)
 
 	const (
 		margin1 = 1
 		margin2 = 2
-		bottom = 64
+		bottom  = 64
 		pagelen = 66
 	)
 	var (
-		lineno int
-		pageno int
+		lineno int = 0
+		pageno int = 0
 	)
 
-	for {
-		// nagłówek
-		if lineno == 0 {
-			pageno++
-			err := skip(bw, margin1)
-			if err != nil {
-				return err
-			}
-			err = head(bw, fname, pageno)
-			if err != nil {
-				return err
-			}
-			err = skip(bw, margin2)
-			if err != nil {
-				return err
-			}
-			lineno = margin1 + margin2 + 1
-		}
+	pageno = 1
+	skip(margin1)
+	head(fname, pageno)
+	skip(margin2)
+	lineno = margin1 + margin2 + 1
 
+	for {
 		// wczytaj wiersz
 		line, err := br.ReadString('\n')
 		if err != nil && err != io.EOF {
@@ -97,11 +83,21 @@ func print(w io.Writer, r io.Reader, fname string) error {
 			break
 		}
 
-		// wydrukuj wiersz
-		if line[len(line) - 1] != '\n' {
-			line += string('\n')
+		// wydrukuj nagłówek
+		if lineno == 0 {
+			pageno++
+			skip(margin1)
+			head(fname, pageno)
+			skip(margin2)
+			lineno = margin1 + margin2 + 1
 		}
-		_, err = bw.WriteString(line)
+
+		// wydrukuj wiersz
+		if line[len(line)-1] != '\n' {
+			line += string('\n')
+			fmt.Fprintf(os.Stderr, "dodanie newline\n") // debug
+		}
+		_, err = fmt.Print(line)
 		if err != nil {
 			return err
 		}
@@ -110,26 +106,24 @@ func print(w io.Writer, r io.Reader, fname string) error {
 
 		// dolny margines
 		if lineno >= bottom {
-			err := skip(bw, pagelen - lineno)
-			if err != nil {
-				return err
-			}
+			fmt.Fprintf(os.Stderr, "skip lineno: %d\n", lineno) //debug
+			skip(pagelen-lineno)
 			lineno = 0
 		}
 	}
 
+	fmt.Fprintf(os.Stderr, "last lineno: %d\n", lineno) // debug
+
+	// wypełnij stronę
 	if lineno > 0 {
-		err := skip(bw, pagelen - lineno)
-		if err != nil {
-			return err
-		}
+		skip(pagelen-lineno)
 	}
 	return nil
 }
 
 func main() {
 	if len(os.Args) == 1 {
-		err := print(os.Stdout, os.Stdin, "")
+		err := print(os.Stdin, "")
 		if err != nil {
 			fatal(err)
 		}
@@ -140,7 +134,7 @@ func main() {
 				fatal(err)
 			}
 
-			err = print(os.Stdout, file, fname)
+			err = print(file, fname)
 			if err != nil {
 				fatal(err)
 			}
