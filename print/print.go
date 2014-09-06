@@ -1,6 +1,4 @@
 // 2014-09-04 Adam Bryt
-// todo
-//	- dodać wyświetlanie daty w nagłówku
 
 // Narzędzia Programistyczne w Pascalu,
 // rozdział 3.5 "Redaktor wydruków",
@@ -16,9 +14,19 @@
 //
 // OPIS
 //
+// Program print czyta tekst z podanych plików i drukuje na stdout,
+// dodając nagłówek i dolny margines na każdej stronie. Nagłówek
+// zawiera datę, nazwę pliku i numer strony. Każdy z podanych plików
+// zaczyna się od nowej strony z nową numeracją stron od 1. Jeśli
+// nie podano plików to drukuje dane ze standardowego wejścia. Program
+// nie zmienia tekstu - nie łamie długich wierszy, nie zastępuje
+// znaków tabulacji.
+//
 // PRZYKŁADY
 //
-// UWAGI
+// Drukowanie plików file1 file2:
+//
+//	print file1 file2
 //
 package main
 
@@ -40,12 +48,15 @@ func fatal(err error) {
 	os.Exit(2)
 }
 
+// skip drukuje na stdout n pustych wierszy.
 func skip(n int) {
 	for i := 0; i < n; i++ {
 		fmt.Printf("\n")
 	}
 }
 
+// head drukuje na stdout nagłówek strony, zawierający: nazwę pliku
+// name, aktualną datę i czas oraz numer strony page.
 func head(name string, page int) {
 	const format = "2006-01-02 15:04"
 	t := time.Now().Format(format)
@@ -53,6 +64,10 @@ func head(name string, page int) {
 	fmt.Printf("%s  %s  page %d\n", name, t, page)
 }
 
+// print czyta tekst z pliku r, dzieli go na strony z nagłówkiem i
+// dolnym marginesem i drukuje na stdout. W nagłówku jest umieszczana
+// nazwa pliku przekazana w argumencie fname. Zwraca error jeśli
+// wystąpił.
 func print(r io.Reader, fname string) error {
 	br := bufio.NewReader(r)
 
@@ -83,8 +98,8 @@ func print(r io.Reader, fname string) error {
 			break
 		}
 
-		// wydrukuj nagłówek
 		if lineno == 0 {
+			// wydrukuj nagłówek
 			pageno++
 			skip(margin1)
 			head(fname, pageno)
@@ -95,7 +110,6 @@ func print(r io.Reader, fname string) error {
 		// wydrukuj wiersz
 		if line[len(line)-1] != '\n' {
 			line += string('\n')
-			fmt.Fprintf(os.Stderr, "dodanie newline\n") // debug
 		}
 		_, err = fmt.Print(line)
 		if err != nil {
@@ -104,19 +118,16 @@ func print(r io.Reader, fname string) error {
 
 		lineno++
 
-		// dolny margines
+		// dolny margines i nowa strona
 		if lineno >= bottom {
-			fmt.Fprintf(os.Stderr, "skip lineno: %d\n", lineno) //debug
-			skip(pagelen-lineno)
+			skip(pagelen - lineno)
 			lineno = 0
 		}
 	}
 
-	fmt.Fprintf(os.Stderr, "last lineno: %d\n", lineno) // debug
-
 	// wypełnij stronę
 	if lineno > 0 {
-		skip(pagelen-lineno)
+		skip(pagelen - lineno)
 	}
 	return nil
 }
