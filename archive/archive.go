@@ -30,8 +30,11 @@
 // Jeśli nie poda się nazw plików to operacje dotyczą wszystkich plików
 // w archiwum (nie dotyczy -d)
 //
+// Jeśli dla opcji -c (create) nie poda się nazw plików, to tworzone jest
+// archiwum puste - poprzednia zawartość pliku jest usuwana.
+//
 // Archiwum jest sekwencją plików, z których każdy jest poprzedzony
-// metryczką (header) postaci:
+// metryczką (header) postaci stringu zakończonego znakiem \n:
 //
 //	-h- nazwa długość
 //
@@ -76,10 +79,6 @@ func fatal(err error) {
 	os.Exit(2)
 }
 
-func message(s string) {
-	fmt.Fprintf(os.Stderr, "archive: %s\n", s)
-}
-
 // getFnames wstawia do fnames nazwy plików podane jako argumenty
 // polecenia archive. Inicjuje fstats. Sprawdza czy nazwy plików się
 // nie powtarzają - jeśli tak, to zwraca error.
@@ -102,15 +101,18 @@ func getFnames() error {
 	return nil
 }
 
-// update uaktualnia lub dodaje pliki do archiwum.
+// update uaktualnia lub dodaje pliki do archiwum. Działa na pliku
+// tymczasowym, który na końcu jest kopiowany do archiwum aname.
+// Jeśli podczas kopiowania archiwum tymczasowego wystąpi błąd, to
+// plik tymczasowy nie jest usuwany i następuje wyjście z programu.
 func update(aname, cmd string) error {
-	tmp, err := ioutil.TempFile("", tempname)
+	tfile, err := ioutil.TempFile("", tempname)
 	if err != nil {
 		return err
 	}
+	tname := tfile.Name()
 	defer func() {
-		tname := tmp.Name()
-		tmp.Close()
+		tfile.Close()
 		os.Remove(tname)
 	}()
 
@@ -119,7 +121,7 @@ func update(aname, cmd string) error {
 		if err != nil {
 			return err
 		}
-		err = replace(afile, tmp, "-u")
+		err = replace(afile, tfile, "-u")
 		if err != nil {
 			afile.Close()
 			return err
@@ -129,7 +131,7 @@ func update(aname, cmd string) error {
 
 	for i := 0; i < len(fstats); i++ {
 		if fstats[i] == false {
-			err := addfile(fnames[i], tmp)
+			err := addfile(fnames[i], tfile)
 			if err != nil {
 				return err
 			}
@@ -137,37 +139,21 @@ func update(aname, cmd string) error {
 		}
 	}
 
-	err = tmp.Close()
+	err = tfile.Close()
 	if err != nil {
 		return err
 	}
 
-	tname := tmp.Name()
 	err = fcopy(aname, tname)
 	if err != nil {
-		// tymczasowe archiwum powinno pozostać ponieważ aname
+		// tymczasowe archiwum powinno pozostać, ponieważ archiwum aname
 		// mogło zostać uszkodzone przez błąd podczas fcopy
-		s := fmt.Sprintf("temporary archive in file: %q", tname)
-		message(s)
-		return err
+		fmt.Fprintf(os.Stderr, "archive: %s\n", err)
+		fmt.Fprintf(os.Stderr, "archive: archiwum tymczasowe: %s\n", tname)
+		os.Exit(2) // nie wykonuje defer
 	}
 
 	return nil
-}
-
-// rmTempFile zamyka i usuwa plik tymczasowy tmp.
-func rmTempFile(tmp *os.File) {
-	err := tmp.Close()
-	if err != nil {
-		s := fmt.Sprintf("can't close tmp file: %s", err)
-		message(s)
-	}
-
-	err = os.Remove(tmp.Name())
-	if err != nil {
-		s := fmt.Sprintf("can't remove tmp file: %s", err)
-		message(s)
-	}
 }
 
 // addfile dodaje plik fname na koniec archiwum file.
