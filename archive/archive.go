@@ -51,7 +51,19 @@ package main
 
 import (
 	"fmt"
+	"io"
+	"io/ioutil"
 	"os"
+)
+
+const (
+	archhdr  = "-h-"     // początek nagłówka pliku w archiwum
+	tempname = "archive" // prefix nazwy tymczasowego pliku archiwum
+)
+
+var (
+	fnames []string // nazwy plików będących argumentami polecenia
+	fstats []bool   // czy i-ty plik z fnames jest już w archiwum
 )
 
 func usage() {
@@ -64,21 +76,169 @@ func fatal(err error) {
 	os.Exit(2)
 }
 
-// getFnames zwraca nazwy plików podane jako argumenty polecenia archive.
-// Sprawdza czy nazwy plików się nie powtarzają.
-func getFnames() ([]string, error) {
-	fns := os.Args[3:]
-	for i := 0; i < len(fns) - 1; i++ {
-		for j := i + 1; j < len(fns); j++ {
-			if fns[i] == fns[j] {
-				return fns, fmt.Errorf("nazwa pliku się powtarza: %q", fns[i])
+func message(s string) {
+	fmt.Fprintf(os.Stderr, "archive: %s\n", s)
+}
+
+// getFnames wstawia do fnames nazwy plików podane jako argumenty
+// polecenia archive. Inicjuje fstats. Sprawdza czy nazwy plików się
+// nie powtarzają - jeśli tak, to zwraca error.
+func getFnames() error {
+	fnames = os.Args[3:]
+	fstats = make([]bool, len(fnames))
+	for i := range fstats {
+		fstats[i] = false
+	}
+
+	// sprawdzenie czy nazwy plików są unikalne
+	for i := 0; i < len(fnames)-1; i++ {
+		for j := i + 1; j < len(fnames); j++ {
+			if fnames[i] == fnames[j] {
+				return fmt.Errorf("plik się powtarza: %q", fnames[i])
 			}
 		}
 	}
-	return fns, nil
+
+	return nil
 }
 
-func update(aname, cmd string) {
+// update uaktualnia lub dodaje pliki do archiwum.
+func update(aname, cmd string) error {
+	tmp, err := ioutil.TempFile("", tempname)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		tname := tmp.Name()
+		tmp.Close()
+		os.Remove(tname)
+	}()
+
+	if cmd == "-u" {
+		afile, err := os.Open(aname)
+		if err != nil {
+			return err
+		}
+		err = replace(afile, tmp, "-u")
+		if err != nil {
+			afile.Close()
+			return err
+		}
+		afile.Close()
+	}
+
+	for i := 0; i < len(fstats); i++ {
+		if fstats[i] == false {
+			err := addfile(fnames[i], tmp)
+			if err != nil {
+				return err
+			}
+			fstats[i] = true
+		}
+	}
+
+	err = tmp.Close()
+	if err != nil {
+		return err
+	}
+
+	tname := tmp.Name()
+	err = fcopy(aname, tname)
+	if err != nil {
+		// tymczasowe archiwum powinno pozostać ponieważ aname
+		// mogło zostać uszkodzone przez błąd podczas fcopy
+		s := fmt.Sprintf("temporary archive in file: %q", tname)
+		message(s)
+		return err
+	}
+
+	return nil
+}
+
+// rmTempFile zamyka i usuwa plik tymczasowy tmp.
+func rmTempFile(tmp *os.File) {
+	err := tmp.Close()
+	if err != nil {
+		s := fmt.Sprintf("can't close tmp file: %s", err)
+		message(s)
+	}
+
+	err = os.Remove(tmp.Name())
+	if err != nil {
+		s := fmt.Sprintf("can't remove tmp file: %s", err)
+		message(s)
+	}
+}
+
+// addfile dodaje plik fname na koniec archiwum file.
+func addfile(fname string, file *os.File) error {
+	nf, err := os.Open(fname)
+	if err != nil {
+		return err
+	}
+	defer nf.Close()
+
+	hdr, err := makeHeader(fname)
+	if err != nil {
+		return err
+	}
+
+	_, err = file.WriteString(hdr)
+	if err != nil {
+		return err
+	}
+	_, err = io.Copy(file, nf)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// makeHeader tworzy i zwraca nagłówek pliku fname.
+func makeHeader(fname string) (string, error) {
+	size, err := fsize(fname)
+	if err != nil {
+		return "", err
+	}
+	hdr := fmt.Sprintf("%s %s %d\n", archhdr, fname, size)
+	return hdr, nil
+}
+
+// fsize zwraca rozmiar pliku w bajtach.
+func fsize(fname string) (int64, error) {
+	fi, err := os.Stat(fname)
+	if err != nil {
+		return 0, err
+	}
+	n := fi.Size()
+	return n, nil
+}
+
+// fcopy kopiując zawartość pliku src do pliku dst.
+func fcopy(dst, src string) error {
+	fsrc, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer fsrc.Close()
+
+	fdst, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	defer fdst.Close()
+
+	_, err = io.Copy(fdst, fsrc)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func replace(af, tf *os.File, cmd string) error {
+	return nil
 }
 
 func table(aname string) {
@@ -97,16 +257,17 @@ func main() {
 
 	cmd := os.Args[1]
 	aname := os.Args[2]
-	fnames, err := getFnames()
+	err := getFnames()
 	if err != nil {
 		fatal(err)
 	}
 
-	_ = fnames
-
 	switch cmd {
 	case "-c", "-u":
-		update(aname, cmd)
+		err := update(aname, cmd)
+		if err != nil {
+			fatal(err)
+		}
 	case "-t":
 		table(aname)
 	case "-x", "-p":
