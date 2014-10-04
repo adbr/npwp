@@ -1,0 +1,26 @@
+2014-09-26
+
+Pliki testowe:
+	a	plik
+	b	plik
+	c	plik pusty
+	d	plik nie zakończony znakiem \n
+	qq	archiwum utworzone z plików: a d b c
+	qqa	archiwum uszkodzone - zły magic string drugiego pliku
+	qqb	archiwum uszkodzone - zły (nie liczba) rozmiar pierwszego pliku
+	qqc	archiwum uszkodzone - zła liczba pól w nagłówku pierwszego pliku
+	qqd	archiwum uszkodzone - nagłówek ostatniego pliku nie kończy się
+		znakiem \n
+	qqe	archiwum uszkodzone - rozmiar pliku za duży - większy niż całe
+		archiwum
+
+Testy funkcji table (operacja -t)
+	+ zła nazwa archiwum
+	+ archiwum puste
+	+ archiwum z uszkodzonym nagłówkiem
+		+ magic
+		+ błąd w długości - błąd parsowania
+		+ eof przed \n
+	+ poprzedni plik nie kończy się znakiem \n
+	+ archiwum zawiera plik o długości 0
+	+ eof podczas skip

@@ -33,6 +33,10 @@
 // Jeśli dla opcji -c (create) nie poda się nazw plików, to tworzone jest
 // archiwum puste - poprzednia zawartość pliku jest usuwana.
 //
+// Kolejność wypisywania plików na standardowe wyjście (parametr -p) jest
+// taka jak kolejność plików w archiwum, a nie jak kolejność nazw plików
+// w poleceniu.
+//
 // Archiwum jest sekwencją plików, z których każdy jest poprzedzony
 // metryczką (header) postaci stringu zakończonego znakiem \n:
 //
@@ -53,14 +57,17 @@
 package main
 
 import (
+	"bufio"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
+
+	"npwp/archive/header"
 )
 
 const (
-	archhdr  = "-h-"     // początek nagłówka pliku w archiwum
 	tempname = "archive" // prefix nazwy tymczasowego pliku archiwum
 )
 
@@ -79,10 +86,10 @@ func fatal(err error) {
 	os.Exit(2)
 }
 
-// getFnames wstawia do fnames nazwy plików podane jako argumenty
+// getfnames wstawia do fnames nazwy plików podane jako argumenty
 // polecenia archive. Inicjuje fstats. Sprawdza czy nazwy plików się
 // nie powtarzają - jeśli tak, to zwraca error.
-func getFnames() error {
+func getfnames() error {
 	fnames = os.Args[3:]
 	fstats = make([]bool, len(fnames))
 	for i := range fstats {
@@ -106,32 +113,35 @@ func getFnames() error {
 // Jeśli podczas kopiowania archiwum tymczasowego wystąpi błąd, to
 // plik tymczasowy nie jest usuwany i następuje wyjście z programu.
 func update(aname, cmd string) error {
-	tfile, err := ioutil.TempFile("", tempname)
+	t, err := ioutil.TempFile("", tempname)
 	if err != nil {
 		return err
 	}
-	tname := tfile.Name()
 	defer func() {
-		tfile.Close()
-		os.Remove(tname)
+		t.Close()
+		os.Remove(t.Name())
 	}()
 
+	tw := bufio.NewWriter(t)
+	defer tw.Flush()
+
 	if cmd == "-u" {
-		afile, err := os.Open(aname)
+		a, err := os.Open(aname)
 		if err != nil {
 			return err
 		}
-		err = replace(afile, tfile, "-u")
+		ar := bufio.NewReader(a)
+		err = replace(ar, tw, "-u")
 		if err != nil {
-			afile.Close()
+			a.Close()
 			return err
 		}
-		afile.Close()
+		a.Close()
 	}
 
 	for i := 0; i < len(fstats); i++ {
 		if fstats[i] == false {
-			err := addfile(fnames[i], tfile)
+			err := addfile(fnames[i], tw)
 			if err != nil {
 				return err
 			}
@@ -139,66 +149,53 @@ func update(aname, cmd string) error {
 		}
 	}
 
-	err = tfile.Close()
+	err = tw.Flush()
 	if err != nil {
 		return err
 	}
 
-	err = fcopy(aname, tname)
+	err = t.Close()
+	if err != nil {
+		return err
+	}
+
+	err = fcopy(aname, t.Name())
 	if err != nil {
 		// tymczasowe archiwum powinno pozostać, ponieważ archiwum aname
 		// mogło zostać uszkodzone przez błąd podczas fcopy
 		fmt.Fprintf(os.Stderr, "archive: %s\n", err)
-		fmt.Fprintf(os.Stderr, "archive: archiwum tymczasowe: %s\n", tname)
+		fmt.Fprintf(os.Stderr, "archive: archiwum tymczasowe: %s\n", t.Name())
 		os.Exit(2) // nie wykonuje defer
 	}
 
 	return nil
 }
 
-// addfile dodaje plik fname na koniec archiwum file.
-func addfile(fname string, file *os.File) error {
+// addfile dodaje plik fname na koniec archiwum w.
+func addfile(fname string, w *bufio.Writer) error {
+	defer w.Flush()
+
 	nf, err := os.Open(fname)
 	if err != nil {
 		return err
 	}
 	defer nf.Close()
 
-	hdr, err := makeHeader(fname)
+	hdr, err := header.New(fname)
 	if err != nil {
 		return err
 	}
 
-	_, err = file.WriteString(hdr)
+	err = header.Write(w, hdr)
 	if err != nil {
 		return err
 	}
-	_, err = io.Copy(file, nf)
+	_, err = io.Copy(w, nf)
 	if err != nil {
 		return err
 	}
 
 	return nil
-}
-
-// makeHeader tworzy i zwraca nagłówek pliku fname.
-func makeHeader(fname string) (string, error) {
-	size, err := fsize(fname)
-	if err != nil {
-		return "", err
-	}
-	hdr := fmt.Sprintf("%s %s %d\n", archhdr, fname, size)
-	return hdr, nil
-}
-
-// fsize zwraca rozmiar pliku w bajtach.
-func fsize(fname string) (int64, error) {
-	fi, err := os.Stat(fname)
-	if err != nil {
-		return 0, err
-	}
-	n := fi.Size()
-	return n, nil
 }
 
 // fcopy kopiując zawartość pliku src do pliku dst.
@@ -223,17 +220,252 @@ func fcopy(dst, src string) error {
 	return nil
 }
 
-func replace(af, tf *os.File, cmd string) error {
+// replace kopiuje archiwum ar do pliku tymczasowego tw zastępując lub
+// usuwając pliki podane w wywołaniu archive.
+func replace(ar *bufio.Reader, tw *bufio.Writer, cmd string) error {
+	defer tw.Flush()
+
+	for {
+		hdr, err := header.Read(ar)
+		if err == io.EOF {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+
+		if filearg(hdr.Name) {
+			if cmd == "-u" {
+				err := addfile(hdr.Name, tw)
+				if err != nil {
+					return err
+				}
+			}
+			err := fskip(ar, hdr.Size)
+			if err != nil {
+				return err
+			}
+		} else {
+			err := header.Write(tw, hdr)
+			if err != nil {
+				return err
+			}
+			err = acopy(tw, ar, hdr.Size)
+			if err != nil {
+				return err
+			}
+		}
+	}
+}
+
+// table drukuje wykaz zawartości archiwum aname.
+func table(aname string) error {
+	file, err := os.Open(aname)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	br := bufio.NewReader(file) // dla czytania wiersza funkcją ReadString
+
+	for {
+		hdr, err := header.Read(br)
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return err
+		}
+
+		if filearg(hdr.Name) {
+			tprint(hdr)
+		}
+
+		err = fskip(br, hdr.Size)
+		if err != nil {
+			return err
+		}
+	}
+
+	notfound()
 	return nil
 }
 
-func table(aname string) {
+// filearg sprawdza czy plik name jest na liście parametrów. Jeśli
+// lista parametrów jest pusta to zwraca zawsze true.
+func filearg(name string) bool {
+	if len(fnames) == 0 {
+		return true
+	}
+	for i, f := range fnames {
+		if name == f {
+			fstats[i] = true
+			return true
+		}
+	}
+	return false
 }
 
-func extract(aname, cmd string) {
+// tprint drukuje na stdout treść nagłówka hdr.
+func tprint(hdr *header.Header) {
+	fmt.Printf("%s %d\n", hdr.Name, hdr.Size)
 }
 
-func delete(aname string) {
+// fskip czyta n bajtów z pliku r.
+func fskip(r *bufio.Reader, n int64) error {
+	for i := int64(0); i < n; i++ {
+		_, err := r.ReadByte()
+		if err != nil {
+			return fmt.Errorf("błąd podczas fskip: %s", err)
+		}
+	}
+	return nil
+}
+
+// notfound drukuje info o plikach występujących w liście parametrów
+// ale nie znalezionych w archiwum.
+func notfound() {
+	for i, f := range fnames {
+		if fstats[i] == false {
+			fmt.Fprintf(os.Stderr, "%s: nie ma w archiwum\n", f)
+		}
+	}
+}
+
+// extract wydobywa pliki z archiwum.
+func extract(aname, cmd string) error {
+	f, err := os.Open(aname)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	r := bufio.NewReader(f)
+
+	for {
+		hdr, err := header.Read(r)
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return err
+		}
+
+		if !filearg(hdr.Name) {
+			err := fskip(r, hdr.Size)
+			if err != nil {
+				return err
+			}
+			continue
+		}
+
+		if cmd == "-p" {
+			w := bufio.NewWriter(os.Stdout)
+			err = acopy(w, r, hdr.Size)
+			if err != nil {
+				w.Flush()
+				return err
+			}
+			w.Flush()
+		} else { // "-x"
+			ef, err := os.Create(hdr.Name)
+			if err != nil {
+				return err
+			}
+			w := bufio.NewWriter(ef)
+
+			err = acopy(w, r, hdr.Size)
+			if err != nil {
+				w.Flush()
+				ef.Close()
+				return err
+			}
+
+			err = w.Flush()
+			if err != nil {
+				return err
+			}
+			err = ef.Close()
+			if err != nil {
+				return err
+			}
+		}
+	}
+	notfound()
+	return nil
+}
+
+// acopy kopiuje n bajtów z src do dst.
+func acopy(dst *bufio.Writer, src *bufio.Reader, n int64) error {
+	for i := int64(0); i < n; i++ {
+		c, err := src.ReadByte()
+		if err != nil {
+			return fmt.Errorf("błąd podczas acopy: %s", err)
+		}
+
+		err = dst.WriteByte(c)
+		if err != nil {
+			return fmt.Errorf("błąd podczas acopy: %s", err)
+		}
+	}
+	return nil
+}
+
+// delete usuwa podane pliki z archiwum.
+func delete(aname string) error {
+	if len(fnames) == 0 {
+		return errors.New("parametr -d wymaga podania nazw plików")
+	}
+
+	t, err := ioutil.TempFile("", tempname)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		t.Close()
+		os.Remove(t.Name())
+	}()
+
+	tw := bufio.NewWriter(t)
+	defer tw.Flush()
+
+	a, err := os.Open(aname)
+	if err != nil {
+		return err
+	}
+	defer a.Close()
+
+	ar := bufio.NewReader(a)
+
+	err = replace(ar, tw, "-d")
+	if err != nil {
+		return err
+	}
+
+	notfound()
+
+	err = a.Close()
+	if err != nil {
+		return err
+	}
+
+	err = tw.Flush()
+	if err != nil {
+		return err
+	}
+	err = t.Close()
+	if err != nil {
+		return err
+	}
+
+	err = fcopy(aname, t.Name())
+	if err != nil {
+		// tymczasowe archiwum powinno pozostać, ponieważ archiwum aname
+		// mogło zostać uszkodzone przez błąd podczas fcopy
+		fmt.Fprintf(os.Stderr, "archive: %s\n", err)
+		fmt.Fprintf(os.Stderr, "archive: archiwum tymczasowe: %s\n", t.Name())
+		os.Exit(2) // nie wykonuje defer
+	}
+
+	return nil
 }
 
 func main() {
@@ -243,7 +475,7 @@ func main() {
 
 	cmd := os.Args[1]
 	aname := os.Args[2]
-	err := getFnames()
+	err := getfnames()
 	if err != nil {
 		fatal(err)
 	}
@@ -255,11 +487,20 @@ func main() {
 			fatal(err)
 		}
 	case "-t":
-		table(aname)
+		err := table(aname)
+		if err != nil {
+			fatal(err)
+		}
 	case "-x", "-p":
-		extract(aname, cmd)
+		err := extract(aname, cmd)
+		if err != nil {
+			fatal(err)
+		}
 	case "-d":
-		delete(aname)
+		err := delete(aname)
+		if err != nil {
+			fatal(err)
+		}
 	default:
 		usage()
 	}

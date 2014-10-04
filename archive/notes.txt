@@ -1,0 +1,24 @@
+func usage() {
+func fatal(err error) {
+func getfnames() error {
+func main() {
+
+func update(aname, cmd string) error {
+func table(aname string) error {
+func extract(aname, cmd string) error {
+func delete(aname string) error {
+
+func makeheader(fname string) (string, error) {
+func (h header) String() string {
+func tprint(hdr header) {
+
+func addfile(fname string, w *bufio.Writer) error {
+func replace(ar *bufio.Reader, tw *bufio.Writer, cmd string) error {
+func gethdr(r *bufio.Reader) (header, error) {
+func fskip(r *bufio.Reader, n int64) error {
+func acopy(dst *bufio.Writer, src *bufio.Reader, n int64) error {
+
+func fsize(fname string) (int64, error) {
+func fcopy(dst, src string) error {
+func filearg(name string) bool {
+func notfound() {
