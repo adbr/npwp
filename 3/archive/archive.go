@@ -64,7 +64,7 @@ import (
 	"io/ioutil"
 	"os"
 
-	"npwp/archive/header"
+	"npwp/3/archive/header"
 )
 
 const (
