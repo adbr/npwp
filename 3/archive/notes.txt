@@ -1,24 +1,38 @@
-func usage() {
-func fatal(err error) {
-func getfnames() error {
-func main() {
+main()
+	usage()
+	fatal(err error)
+	getfnames() error
+	update(aname, cmd string) error
+		replace(ar *bufio.Reader, tw *bufio.Writer, cmd string) error
+			header.Read(r *bufio.Reader) (*Header, error)
+			filearg(name string) bool
+			addfile(fname string, w *bufio.Writer) error
+			fskip(r *bufio.Reader, n int64) error
+			header.Write(w *bufio.Writer, h *Header) error
+			acopy(dst *bufio.Writer, src *bufio.Reader, n int64) error
+		addfile(fname string, w *bufio.Writer) error
+			header.New(fname string) (*Header, error)
+			header.Write(w *bufio.Writer, h *Header) error
+		fcopy(dst, src string) error
+	table(aname string) error
+		header.Read(r *bufio.Reader) (*Header, error)
+		filearg(name string) bool
+		tprint(hdr *header.Header)
+		fskip(r *bufio.Reader, n int64) error
+		notfound()
+	extract(aname, cmd string) error
+		header.Read(r *bufio.Reader) (*Header, error)
+		filearg(name string) bool
+		fskip(r *bufio.Reader, n int64) error
+		acopy(dst *bufio.Writer, src *bufio.Reader, n int64) error
+		notfound()
+	delete(aname string) error
+		replace(ar *bufio.Reader, tw *bufio.Writer, cmd string) error
+		notfound()
+		fcopy(dst, src string) error
 
-func update(aname, cmd string) error {
-func table(aname string) error {
-func extract(aname, cmd string) error {
-func delete(aname string) error {
-
-func makeheader(fname string) (string, error) {
-func (h header) String() string {
-func tprint(hdr header) {
-
-func addfile(fname string, w *bufio.Writer) error {
-func replace(ar *bufio.Reader, tw *bufio.Writer, cmd string) error {
-func gethdr(r *bufio.Reader) (header, error) {
-func fskip(r *bufio.Reader, n int64) error {
-func acopy(dst *bufio.Writer, src *bufio.Reader, n int64) error {
-
-func fsize(fname string) (int64, error) {
-func fcopy(dst, src string) error {
-func filearg(name string) bool {
-func notfound() {
+header.New(fname string) (*Header, error)
+header.Read(r *bufio.Reader) (*Header, error)
+	header.Parse(s string) (*Header, error)
+header.Write(w *bufio.Writer, h *Header) error
+	Header.String() string
