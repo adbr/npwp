@@ -171,93 +171,6 @@ func update(aname, cmd string) error {
 	return nil
 }
 
-// addfile dodaje plik fname na koniec archiwum w.
-func addfile(fname string, w *bufio.Writer) error {
-	defer w.Flush()
-
-	nf, err := os.Open(fname)
-	if err != nil {
-		return err
-	}
-	defer nf.Close()
-
-	hdr, err := header.New(fname)
-	if err != nil {
-		return err
-	}
-
-	err = header.Write(w, hdr)
-	if err != nil {
-		return err
-	}
-	_, err = io.Copy(w, nf)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// fcopy kopiując zawartość pliku src do pliku dst.
-func fcopy(dst, src string) error {
-	fsrc, err := os.Open(src)
-	if err != nil {
-		return err
-	}
-	defer fsrc.Close()
-
-	fdst, err := os.Create(dst)
-	if err != nil {
-		return err
-	}
-	defer fdst.Close()
-
-	_, err = io.Copy(fdst, fsrc)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// replace kopiuje archiwum ar do pliku tymczasowego tw zastępując lub
-// usuwając pliki podane w wywołaniu archive.
-func replace(ar *bufio.Reader, tw *bufio.Writer, cmd string) error {
-	defer tw.Flush()
-
-	for {
-		hdr, err := header.Read(ar)
-		if err == io.EOF {
-			return nil
-		}
-		if err != nil {
-			return err
-		}
-
-		if filearg(hdr.Name) {
-			if cmd == "-u" {
-				err := addfile(hdr.Name, tw)
-				if err != nil {
-					return err
-				}
-			}
-			err := fskip(ar, hdr.Size)
-			if err != nil {
-				return err
-			}
-		} else {
-			err := header.Write(tw, hdr)
-			if err != nil {
-				return err
-			}
-			err = acopy(tw, ar, hdr.Size)
-			if err != nil {
-				return err
-			}
-		}
-	}
-}
-
 // table drukuje wykaz zawartości archiwum aname.
 func table(aname string) error {
 	file, err := os.Open(aname)
@@ -288,47 +201,6 @@ func table(aname string) error {
 
 	notfound()
 	return nil
-}
-
-// filearg sprawdza czy plik name jest na liście parametrów. Jeśli
-// lista parametrów jest pusta to zwraca zawsze true.
-func filearg(name string) bool {
-	if len(fnames) == 0 {
-		return true
-	}
-	for i, f := range fnames {
-		if name == f {
-			fstats[i] = true
-			return true
-		}
-	}
-	return false
-}
-
-// tprint drukuje na stdout treść nagłówka hdr.
-func tprint(hdr *header.Header) {
-	fmt.Printf("%s %d\n", hdr.Name, hdr.Size)
-}
-
-// fskip czyta n bajtów z pliku r.
-func fskip(r *bufio.Reader, n int64) error {
-	for i := int64(0); i < n; i++ {
-		_, err := r.ReadByte()
-		if err != nil {
-			return fmt.Errorf("błąd podczas fskip: %s", err)
-		}
-	}
-	return nil
-}
-
-// notfound drukuje info o plikach występujących w liście parametrów
-// ale nie znalezionych w archiwum.
-func notfound() {
-	for i, f := range fnames {
-		if fstats[i] == false {
-			fmt.Fprintf(os.Stderr, "%s: nie ma w archiwum\n", f)
-		}
-	}
 }
 
 // extract wydobywa pliki z archiwum.
@@ -393,22 +265,6 @@ func extract(aname, cmd string) error {
 	return nil
 }
 
-// acopy kopiuje n bajtów z src do dst.
-func acopy(dst *bufio.Writer, src *bufio.Reader, n int64) error {
-	for i := int64(0); i < n; i++ {
-		c, err := src.ReadByte()
-		if err != nil {
-			return fmt.Errorf("błąd podczas acopy: %s", err)
-		}
-
-		err = dst.WriteByte(c)
-		if err != nil {
-			return fmt.Errorf("błąd podczas acopy: %s", err)
-		}
-	}
-	return nil
-}
-
 // delete usuwa podane pliki z archiwum.
 func delete(aname string) error {
 	if len(fnames) == 0 {
@@ -466,6 +322,150 @@ func delete(aname string) error {
 	}
 
 	return nil
+}
+
+// addfile dodaje plik fname na koniec archiwum w.
+func addfile(fname string, w *bufio.Writer) error {
+	defer w.Flush()
+
+	nf, err := os.Open(fname)
+	if err != nil {
+		return err
+	}
+	defer nf.Close()
+
+	hdr, err := header.New(fname)
+	if err != nil {
+		return err
+	}
+
+	err = header.Write(w, hdr)
+	if err != nil {
+		return err
+	}
+	_, err = io.Copy(w, nf)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// replace kopiuje archiwum ar do pliku tymczasowego tw zastępując lub
+// usuwając pliki podane w wywołaniu archive.
+func replace(ar *bufio.Reader, tw *bufio.Writer, cmd string) error {
+	defer tw.Flush()
+
+	for {
+		hdr, err := header.Read(ar)
+		if err == io.EOF {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+
+		if filearg(hdr.Name) {
+			if cmd == "-u" {
+				err := addfile(hdr.Name, tw)
+				if err != nil {
+					return err
+				}
+			}
+			err := fskip(ar, hdr.Size)
+			if err != nil {
+				return err
+			}
+		} else {
+			err := header.Write(tw, hdr)
+			if err != nil {
+				return err
+			}
+			err = acopy(tw, ar, hdr.Size)
+			if err != nil {
+				return err
+			}
+		}
+	}
+}
+
+// fcopy kopiując zawartość pliku src do pliku dst.
+func fcopy(dst, src string) error {
+	fsrc, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer fsrc.Close()
+
+	fdst, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	defer fdst.Close()
+
+	_, err = io.Copy(fdst, fsrc)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// acopy kopiuje n bajtów z src do dst.
+func acopy(dst *bufio.Writer, src *bufio.Reader, n int64) error {
+	for i := int64(0); i < n; i++ {
+		c, err := src.ReadByte()
+		if err != nil {
+			return fmt.Errorf("błąd podczas acopy: %s", err)
+		}
+
+		err = dst.WriteByte(c)
+		if err != nil {
+			return fmt.Errorf("błąd podczas acopy: %s", err)
+		}
+	}
+	return nil
+}
+
+// filearg sprawdza czy plik name jest na liście parametrów. Jeśli
+// lista parametrów jest pusta to zwraca zawsze true.
+func filearg(name string) bool {
+	if len(fnames) == 0 {
+		return true
+	}
+	for i, f := range fnames {
+		if name == f {
+			fstats[i] = true
+			return true
+		}
+	}
+	return false
+}
+
+// tprint drukuje na stdout treść nagłówka hdr.
+func tprint(hdr *header.Header) {
+	fmt.Printf("%s %d\n", hdr.Name, hdr.Size)
+}
+
+// fskip czyta i pomija n bajtów z pliku r.
+func fskip(r *bufio.Reader, n int64) error {
+	for i := int64(0); i < n; i++ {
+		_, err := r.ReadByte()
+		if err != nil {
+			return fmt.Errorf("błąd podczas fskip: %s", err)
+		}
+	}
+	return nil
+}
+
+// notfound drukuje info o plikach występujących w liście parametrów
+// ale nie znalezionych w archiwum.
+func notfound() {
+	for i, f := range fnames {
+		if fstats[i] == false {
+			fmt.Fprintf(os.Stderr, "%s: nie ma w archiwum\n", f)
+		}
+	}
 }
 
 func main() {
