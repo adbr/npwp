@@ -1,6 +1,5 @@
 main()
 	usage()
-	fatal(err error)
 	getfnames() error
 	update(aname, cmd string) error
 		replace(ar *bufio.Reader, tw *bufio.Writer, cmd string) error

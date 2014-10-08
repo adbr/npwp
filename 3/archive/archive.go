@@ -62,6 +62,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"os"
 
 	"npwp/3/archive/header"
@@ -79,11 +80,6 @@ var (
 func usage() {
 	fmt.Fprintf(os.Stderr, "usage: archive -cdptux archname [file ...]\n")
 	os.Exit(1)
-}
-
-func fatal(err error) {
-	fmt.Fprintf(os.Stderr, "archive: %s\n", err)
-	os.Exit(2)
 }
 
 // getfnames wstawia do fnames nazwy plików podane jako argumenty
@@ -469,6 +465,9 @@ func notfound() {
 }
 
 func main() {
+	log.SetPrefix("archive: ")
+	log.SetFlags(0)
+
 	if len(os.Args) < 3 {
 		usage()
 	}
@@ -477,29 +476,29 @@ func main() {
 	aname := os.Args[2]
 	err := getfnames()
 	if err != nil {
-		fatal(err)
+		log.Fatal(err)
 	}
 
 	switch cmd {
 	case "-c", "-u":
 		err := update(aname, cmd)
 		if err != nil {
-			fatal(err)
+			log.Fatal(err)
 		}
 	case "-t":
 		err := table(aname)
 		if err != nil {
-			fatal(err)
+			log.Fatal(err)
 		}
 	case "-x", "-p":
 		err := extract(aname, cmd)
 		if err != nil {
-			fatal(err)
+			log.Fatal(err)
 		}
 	case "-d":
 		err := delete(aname)
 		if err != nil {
-			fatal(err)
+			log.Fatal(err)
 		}
 	default:
 		usage()
