@@ -1,7 +1,8 @@
 // 2014-06-02 Adam Bryt
 
-// Narzędzia Programistyczne w Pascalu, rozdział 1.1 "Kopiowanie
-// plików", program copy.
+// Narzędzia Programistyczne w Pascalu,
+// rozdział 1.1 "Kopiowanie plików",
+// program copy.
 //
 // NAME
 //
@@ -9,15 +10,13 @@
 //
 // SYNOPSIS
 //
-// usage: copy [-h] [ <file1 >file2 ]
+// usage: copy [ <file1 >file2 ]
 //
 // DESCRIPTION
 //
 // Program copy kopiuje standardowe wejscie na standardowe wyjście.
 // Może być używany do kopiowania pliku na plik lub do wyświetlania
 // pliku na terminal.
-//
-// Opcja -h wyświetla krótki help.
 //
 // EXAMPLES
 //
@@ -32,44 +31,17 @@
 package main
 
 import (
-	"flag"
-	"fmt"
 	"io"
+	"log"
 	"os"
 )
 
-const usageStr = "usage: copy [-h] [ <file1 >file2 ]"
-
-const helpStr = usageStr + `
-Program copy kopiuje stdin na stdout
-Opcje:
-	-h  wyświetla ten help
-`
-
-func usage() {
-	fmt.Fprintln(os.Stderr, usageStr)
-	os.Exit(1)
-}
-
-func help() {
-	fmt.Println(helpStr)
-	os.Exit(0)
-}
-
 func main() {
-	var helpFlag bool
-	flag.BoolVar(&helpFlag, "h", false, "wyświetl help")
-	flag.BoolVar(&helpFlag, "help", false, "wyświetl help")
-	flag.Usage = usage
-	flag.Parse()
-
-	if helpFlag {
-		help()
-	}
+	log.SetPrefix("copy: ")
+	log.SetFlags(0)
 
 	_, err := io.Copy(os.Stdout, os.Stdin)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "copy: %v\n", err)
-		os.Exit(1)
+		log.Fatal(err)
 	}
 }
