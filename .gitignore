@@ -18,3 +18,6 @@ cat/cat
 3/makecopy/makecopy
 3/print/gen/gen
 3/print/print
+4/bubble/bubble
+4/inmemsort/inmemsort
+4/shell/shell
