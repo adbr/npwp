@@ -11,6 +11,7 @@ func quick(a []int) {
 	xi := len(a) - 1 // indeks pivota
 	x := a[xi]       // wartość pivota
 	i, j := 0, len(a)-1
+	// zamieniaj miejscami elementy większe i mniejsze od pivota
 	for {
 		if i == j {
 			break
@@ -31,7 +32,8 @@ func quick(a []int) {
 			a[i], a[j] = a[j], a[i]
 		}
 	}
-	a[i], a[xi] = a[xi], a[i] // wstaw pivot w miejsce spotkania i j
+	// wstaw pivot w miejsce spotkania i j
+	a[i], a[xi] = a[xi], a[i]
 	quick(a[:i])
 	quick(a[i:])
 }
