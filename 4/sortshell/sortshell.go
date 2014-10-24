@@ -2,19 +2,19 @@
 
 // Narzędzia Programistyczne w Pascalu,
 // rozdział 4.3 "Sortowanie tekstu",
-// program inmemsort.
+// program sortshell.
 //
 // NAZWA
 //
-// inmemsort - sortuje wiersze tekstu
+// sortshell - sortuje wiersze tekstu
 //
 // SPOSÓB UŻYCIA
 //
-// inmemsort [<file1] [>file2]
+// sortshell [<file1] [>file2]
 //
 // OPIS
 //
-// Program inmemsort czyta wiersze tekstu z stdin, sortuje je i drukuje
+// Program sortshell czyta wiersze tekstu z stdin, sortuje je i drukuje
 // na stdout. Wszystkie wiersze są trzymane w pamięci i sortowane metodą
 // Shella. Wiersze są porównywane zgodnie z kolejnością znaków języka
 // polskiego (collate).
