@@ -97,6 +97,7 @@ func quicksort(a []string, c *collate.Collator) {
 	quicksort(a[:i], c)
 	quicksort(a[i:], c)
 }
+
 func main() {
 	lines, err := gtext(os.Stdin)
 	if err != nil {
