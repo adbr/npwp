@@ -21,9 +21,21 @@
 //
 // SPOSÓB UŻYCIA
 //
+// sort [<file1] [>file2]
+//
 // OPIS
 //
+// Program sort sortuje wiersze tekstu czytane ze standardowego wejścia
+// i drukuje posortowany tekst na standardowe wyjście. Wiersze tekstu są
+// sortowane zewnętrznie - fragmenty tekstu są sortowane metodą quick sort,
+// zapisywane w plikach tymczasowych, które następnie są łączone. Pliki
+// tymczasowe mają nazwy stemp# gdzie # jest liczbą całkowitą.
+//
 // PRZYKŁADY
+//
+// Sortowanie pliku file1 i zapisanie wyniku do pliku file2:
+//
+//	$sort <file1 >file2
 //
 // UWAGI
 //
