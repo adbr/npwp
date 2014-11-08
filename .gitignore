@@ -18,10 +18,10 @@ cat/cat
 3/makecopy/makecopy
 3/print/gen/gen
 3/print/print
-4/bubble/bubble
+4/algo/bubble/bubble
 4/sortshell/sortshell
-4/shell/shell
-4/quick/quick
+4/algo/shell/shell
+4/algo/quick/quick
 4/sortquick/sortquick
 4/sort/sort
 4/sortgo/sortgo
