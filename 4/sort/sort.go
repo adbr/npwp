@@ -1,15 +1,20 @@
 // 2014-10-25 Adam Bryt
 //
 // Uwagi:
-// - użycie collate do porównywania napisów bardzo spowalnia sortowanie;
-// - użycie collate powoduje, że kompilacja trwa długo i wymaga dużo
-//   pamięci RAM - ponad 500 MB;
-// - algorytm quicksort jest nie optymalny - np bardzo długo sortuje
+// - Użycie collate do porównywania napisów bardzo spowalnia sortowanie;
+//   porównanie stringów funkcją collate.CompareStrings() jest około 250 razy
+//   wolniejsze niż porównanie stringów wbudowanym operatorem
+//   (npwp/4/bench/cmpstring_test.go).
+// - Użycie collate powoduje, że kompilacja trwa długo i wymaga dużo
+//   pamięci RAM - ponad 500 MB. Poprawka: pakiet collate nie był
+//   skompilowany i zainstalowany - po instalacji collage (go install)
+//   kompilacja jest szybka.
+// - Algorytm quicksort jest nie optymalny - np bardzo długo sortuje
 //   plik /usr/share/dict/words - może z tego powodu, że plik jest już
-//   posortowany, a to jest najgorszy przypadek dla tego algorytmu;
-// - wybieranie najmniejszego wiersza podczas łączenia plików tymczasowych
+//   posortowany, a to jest najgorszy przypadek dla tego algorytmu.
+// - Wybieranie najmniejszego wiersza podczas łączenia plików tymczasowych
 //   jest robione przez przeszukiwanie liniowe, zamiast przy użyciu stogu
-//   jak w książce;
+//   jak w książce.
 
 // Narzędzia Programistyczne w Pascalu,
 // rozdział 4.5 "Sortowanie dużych plików",
