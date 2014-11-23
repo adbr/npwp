@@ -139,6 +139,7 @@ func unique(w io.Writer, r io.Reader) error {
 				}
 			}
 			if len(line) > 0 {
+				// na pewno nie duplikat
 				err := print(w, last, 1)
 				if err != nil {
 					return err
