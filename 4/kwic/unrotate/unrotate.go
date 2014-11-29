@@ -14,12 +14,33 @@
 //
 // OPIS
 //
+// Program unrotate czyta z stdin wiersze tekstu wygenerowane przez
+// program kwic, formatuje je tak, żeby powstał indeks KWIC i drukuje
+// do stdout.
+//
 // PRZYKŁADY
+//
+// Mając dany plik y.txt utworzony poleceniem kwik | sort:
+//
+//	cat y.txt
+//	This is a test.$
+//	a test.$This is
+//	is a test.$This
+//	test.$This is a
+//
+// polecenie unrotate <y.txt wypisze następujący tekst:
+//
+//
+//                                          This is a test.
+//                                 This is  a test.
+//                                    This  is a test.
+//                               This is a  test.
 //
 package main
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"io"
 	"log"
@@ -60,6 +81,7 @@ func unrotateLine(line string) string {
 		}
 	}
 
+	out = bytes.TrimRight(out, " ")
 	return string(out)
 }
 
