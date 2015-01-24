@@ -1,0 +1,21 @@
++ pattern.String: dodać CCL i NCCL
++ makepat: błąd gdy klasa znaków ma więcej niż 255 znaków
+	+ test dla tego błędu
++ makepat: testy klas znaków
++ makepat: dodać domknięcia
+	Tak CLOSURE powinien być przed elementem wzorca, którego dotyczy.
+	Potrzebny jest indeks początku poprzedniej sekwencji wzorca
+	w out - tam trzeba wstawić tag CLOSURE, i całą zawartość out
+	przesunąć w prawo o długość tagu CLOSURE (czyli jeden).
+	Przed dopisanie elementu wzorca do out trzeba zapamiętać indeks
+	początku tego dopisywanego wzorca:
+		last = len(out) + 1
++ makepat: testy domknięć
++ zmienić []byte("abc")... na "abc"... w append (przypadek specjalny)
+--
++ przeniesienie kodu do plików pattern.go i match.go
++ match bez domknięcia
++ testy dla match (TestMatch)
++ amatch z domknięciami
++ testy z domknięciami
+- doc
