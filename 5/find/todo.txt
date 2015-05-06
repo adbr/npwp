@@ -18,4 +18,4 @@
 + testy dla match (TestMatch)
 + amatch z domknięciami
 + testy z domknięciami
-- doc
++ doc
