@@ -1,6 +1,6 @@
 // 2015-01-19 Adam Bryt
 
-package main
+package pattern
 
 import (
 	"testing"
@@ -25,7 +25,7 @@ func TestPatsize(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		pat, err := makepat(test.in)
+		pat, err := Makepat(test.in)
 		if err != nil {
 			t.Error(err)
 		}
@@ -174,7 +174,7 @@ func TestOmatch(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		pat, err := makepat(test.pat)
+		pat, err := Makepat(test.pat)
 		if err != nil {
 			t.Error(err)
 		}
@@ -358,7 +358,7 @@ func TestAmatch(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		pat, err := makepat(test.pat)
+		pat, err := Makepat(test.pat)
 		if err != nil {
 			t.Error(err)
 		}
@@ -441,7 +441,7 @@ func TestMatch(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		pat, err := makepat(test.pat)
+		pat, err := Makepat(test.pat)
 		if err != nil {
 			t.Error(err)
 		}

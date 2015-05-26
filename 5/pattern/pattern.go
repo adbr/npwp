@@ -2,7 +2,7 @@
 
 // Plik zawiera kod związany z kompilacją wzorca.
 
-package main
+package pattern
 
 import (
 	"errors"
@@ -37,11 +37,11 @@ const (
 	CLOSURE
 )
 
-// Typ pattern reprezentuje skompilowany wzorzec.
-type pattern string
+// Typ Pattern reprezentuje skompilowany wzorzec.
+type Pattern string
 
 // String zwraca stringową reprezentację skompilowanego wzorca.
-func (p pattern) String() string {
+func (p Pattern) String() string {
 	var out []byte
 	for {
 		if len(p) == 0 {
@@ -84,14 +84,14 @@ func (p pattern) String() string {
 		case CLOSURE:
 			out = append(out, "<CLOSURE>"...)
 		default:
-			panic(fmt.Sprintf("pattern.String: nie znany tag: %d", t))
+			panic(fmt.Sprintf("Pattern.String: nie znany tag: %d", t))
 		}
 	}
 	return string(out)
 }
 
-// makepath kompiluje wzorzec arg do reprezentacji wewnętrznej pattern.
-func makepat(arg string) (pattern, error) {
+// Makepat kompiluje wzorzec arg do reprezentacji wewnętrznej Pattern.
+func Makepat(arg string) (Pattern, error) {
 	var out []byte
 	s := arg[:]
 	last := 0 // początek ostatnio dodanego wzorca
@@ -133,7 +133,7 @@ func makepat(arg string) (pattern, error) {
 			}
 			nr := utf8.RuneCount(chars)
 			if nr > maxChars {
-				return pattern(out), fmt.Errorf("klasa zawiera więcej niż %d znaków: %d", maxChars, nr)
+				return Pattern(out), fmt.Errorf("klasa zawiera więcej niż %d znaków: %d", maxChars, nr)
 			}
 			out = append(out, byte(nr))
 			out = append(out, chars...)
@@ -142,7 +142,7 @@ func makepat(arg string) (pattern, error) {
 			if tag == BOL ||
 				tag == EOL ||
 				tag == CLOSURE {
-				return pattern(out), errors.New("'*' nie może być po BOL, EOL, CLOSURE")
+				return Pattern(out), errors.New("'*' nie może być po BOL, EOL, CLOSURE")
 			}
 			out = stclose(out, last)
 			s = s[n:]
@@ -156,7 +156,7 @@ func makepat(arg string) (pattern, error) {
 		}
 	}
 
-	return pattern(out), nil
+	return Pattern(out), nil
 }
 
 // stclose dodaje znacznik CLOSURE do wzorca pat przed segmentem
@@ -280,7 +280,7 @@ func isAlphanum(r rune) bool {
 	return false
 }
 
-func getpat(arg string) (pattern, error) {
+func Getpat(arg string) (Pattern, error) {
 	// TODO - czy ta funkcja jest potrzebna?
-	return makepat(arg)
+	return Makepat(arg)
 }

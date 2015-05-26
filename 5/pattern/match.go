@@ -2,15 +2,15 @@
 
 // Plik zawiera funkcjonalność związaną z dopasowywaniem wzorca.
 
-package main
+package pattern
 
 import (
 	"fmt"
 	"unicode/utf8"
 )
 
-// match dopasowuje wzorzec par w dowolnym miejscu stringu lin.
-func match(lin string, pat pattern) bool {
+// Match dopasowuje wzorzec par w dowolnym miejscu stringu lin.
+func Match(lin string, pat Pattern) bool {
 	for i := range lin {
 		ok, _ := amatch(lin, i, pat, 0)
 		if ok {
@@ -23,7 +23,7 @@ func match(lin string, pat pattern) bool {
 // amatch dopasowuje wzorzec zaczynający się od pat[j] do stringu
 // zaczynającego się od str[offset]. Jeśli wzorzec pasuje, to zwraca
 // true i liczbę bajtów str pasujących do wzorca.
-func amatch(str string, offset int, pat pattern, j int) (bool, int) {
+func amatch(str string, offset int, pat Pattern, j int) (bool, int) {
 	i := offset
 	for j < len(pat) {
 		if pat[j] == CLOSURE {
@@ -68,7 +68,7 @@ func amatch(str string, offset int, pat pattern, j int) (bool, int) {
 // omatch dopasowuje jeden element wzorca zaczynający się od pat[j] do
 // stringu zaczynającego się od str[i]. Jeśli element wzorca pasuje
 // to zwraca true i liczbę bajtów str pasujących do elementu wzorca.
-func omatch(str string, i int, pat pattern, j int) (bool, int) {
+func omatch(str string, i int, pat Pattern, j int) (bool, int) {
 	tag := pat[j]
 	switch tag {
 	case BOL:
@@ -109,7 +109,7 @@ func omatch(str string, i int, pat pattern, j int) (bool, int) {
 // locate sprawdza czy znak c znajduje się w klasie znaków zawartej w
 // pat. Pierwszy bajt w pat zawiera liczbę znaków a pozostałe bajty
 // zawierają znaki zakodowane w utf8.
-func locate(c rune, pat pattern) bool {
+func locate(c rune, pat Pattern) bool {
 	num := int(pat[0])
 	pat = pat[1:]
 	for i := 0; i < num; i++ {
@@ -123,7 +123,7 @@ func locate(c rune, pat pattern) bool {
 }
 
 // patsize zwraca rozmiar w bajtach pierwszego segmentu wzorca pat.
-func patsize(pat pattern) int {
+func patsize(pat Pattern) int {
 	if len(pat) == 0 {
 		return 0
 	}

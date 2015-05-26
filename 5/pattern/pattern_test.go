@@ -1,6 +1,6 @@
 // 2015-01-20 Adam Bryt
 
-package main
+package pattern
 
 import (
 	"bytes"
@@ -129,7 +129,7 @@ func TestMakepat(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		pat, err := makepat(test.in)
+		pat, err := Makepat(test.in)
 		if err != nil {
 			t.Error(err)
 		}
@@ -143,7 +143,7 @@ func TestMakepat(t *testing.T) {
 	// najpierw maksymalna dozwolona ilość
 	in := strings.Repeat("a", maxChars)
 	in = "[" + in + "]"
-	_, err := makepat(in)
+	_, err := Makepat(in)
 	if err != nil {
 		t.Error(err)
 	}
@@ -151,7 +151,7 @@ func TestMakepat(t *testing.T) {
 	// przekroczenie maksymalnej dozwolonej wartości
 	in = strings.Repeat("a", maxChars+1)
 	in = "[" + in + "]"
-	_, err = makepat(in)
+	_, err = Makepat(in)
 	if err == nil {
 		t.Error("oczekiwano błędu przekroczenia maksymalnej liczby znaków")
 	}

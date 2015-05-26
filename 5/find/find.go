@@ -8,6 +8,8 @@ import (
 	"io"
 	"log"
 	"os"
+
+	"npwp/5/pattern"
 )
 
 func usage() {
@@ -15,7 +17,7 @@ func usage() {
 	os.Exit(1)
 }
 
-func find(w io.Writer, r io.Reader, pat pattern) error {
+func find(w io.Writer, r io.Reader, pat pattern.Pattern) error {
 	br := bufio.NewReader(r)
 	for done := false; !done; {
 		lin, err := br.ReadString('\n')
@@ -30,7 +32,7 @@ func find(w io.Writer, r io.Reader, pat pattern) error {
 				return nil
 			}
 		}
-		if match(lin, pat) {
+		if pattern.Match(lin, pat) {
 			io.WriteString(w, lin)
 		}
 	}
@@ -42,7 +44,7 @@ func main() {
 		usage()
 	}
 
-	pat, err := getpat(os.Args[1])
+	pat, err := pattern.Getpat(os.Args[1])
 	if err != nil {
 		log.Fatal(err)
 	}
