@@ -445,9 +445,9 @@ func TestMatch(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		ok := match(test.str, pat)
+		ok := Match(test.str, pat)
 		if ok != test.ok {
-			t.Errorf("#%d: match() oczekiwano: %v, jest %v", i, test.ok, ok)
+			t.Errorf("#%d: Match() oczekiwano: %v, jest %v", i, test.ok, ok)
 		}
 	}
 }

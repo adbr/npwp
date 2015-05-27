@@ -26,8 +26,8 @@ func Match(lin string, pat Pattern) bool {
 func amatch(str string, offset int, pat Pattern, j int) (bool, int) {
 	i := offset
 	for j < len(pat) {
-		if pat[j] == CLOSURE {
-			j += patsize(pat[j:]) // pomiń tag CLOSURE
+		if pat[j] == closure {
+			j += patsize(pat[j:]) // pomiń tag closure
 			ii := i
 
 			// dopasuj maksymalną ilość znaków do pat[j]
@@ -71,31 +71,31 @@ func amatch(str string, offset int, pat Pattern, j int) (bool, int) {
 func omatch(str string, i int, pat Pattern, j int) (bool, int) {
 	tag := pat[j]
 	switch tag {
-	case BOL:
+	case bol:
 		if i == 0 {
 			return true, 0
 		}
-	case EOL:
+	case eol:
 		if i < len(str) && str[i] == '\n' {
 			return true, 0
 		}
-	case ANY:
+	case any:
 		r, n := utf8.DecodeRuneInString(str[i:])
 		if r != utf8.RuneError && r != '\n' {
 			return true, n
 		}
-	case LITCHAR:
+	case litchar:
 		r1, n1 := utf8.DecodeRuneInString(str[i:])
 		r2, _ := utf8.DecodeRuneInString(string(pat[j+1:]))
 		if (r1 == r2) && (r1 != utf8.RuneError) {
 			return true, n1
 		}
-	case CCL:
+	case ccl:
 		r, n := utf8.DecodeRuneInString(str[i:])
 		if locate(r, pat[j+1:]) {
 			return true, n
 		}
-	case NCCL:
+	case nccl:
 		r, n := utf8.DecodeRuneInString(str[i:])
 		if !locate(r, pat[j+1:]) && r != '\n' {
 			return true, n
@@ -131,12 +131,12 @@ func patsize(pat Pattern) int {
 	tag := pat[0]
 
 	switch tag {
-	case BOL, EOL, ANY:
+	case bol, eol, any:
 		return 1
-	case LITCHAR:
+	case litchar:
 		_, n := utf8.DecodeRuneInString(string(pat[1:]))
 		return 1 + n
-	case CCL, NCCL:
+	case ccl, nccl:
 		nc := int(pat[1]) // liczba znaków w klasie
 		p := pat[2:]      // początek znaków w klasie
 		b := 0            // licznik bajtów
@@ -146,7 +146,7 @@ func patsize(pat Pattern) int {
 			p = p[n:]
 		}
 		return 2 + b
-	case CLOSURE:
+	case closure:
 		return 1
 	default:
 		panic(fmt.Sprintf("patsize(): nie znany tag: %d", tag))

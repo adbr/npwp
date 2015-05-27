@@ -1,7 +1,7 @@
 // 2015-01-15 Adam Bryt
 
-// Plik zawiera kod związany z kompilacją wzorca.
-
+// Pakiet pattern zawiera funkcjonalność związaną z tworzeniem
+// i dopasowywaniem wzorców.
 package pattern
 
 import (
@@ -16,25 +16,25 @@ const (
 
 // Stałe oznaczające znaki wyróżnione występujące we wzorcu źródłowym.
 const (
-	S_BOL     = '%'
-	S_EOL     = '$'
-	S_ANY     = '?'
-	S_CCL     = '['
-	S_CCLEND  = ']'
-	S_NEGATE  = '^'
-	S_CLOSURE = '*'
-	S_ESC     = '@'
+	s_bol     = '%'
+	s_eol     = '$'
+	s_any     = '?'
+	s_ccl     = '['
+	s_cclend  = ']'
+	s_negate  = '^'
+	s_closure = '*'
+	s_esc     = '@'
 )
 
 // Stałe oznaczające tagi elementów wzorca w postaci skompilowanej.
 const (
-	LITCHAR byte = iota
-	BOL
-	EOL
-	ANY
-	CCL
-	NCCL
-	CLOSURE
+	litchar byte = iota
+	bol
+	eol
+	any
+	ccl
+	nccl
+	closure
 )
 
 // Typ Pattern reprezentuje skompilowany wzorzec.
@@ -52,18 +52,18 @@ func (p Pattern) String() string {
 		p = p[1:]
 
 		switch t {
-		case BOL:
+		case bol:
 			out = append(out, "<BOL>"...)
-		case EOL:
+		case eol:
 			out = append(out, "<EOL>"...)
-		case ANY:
+		case any:
 			out = append(out, "<ANY>"...)
-		case LITCHAR:
+		case litchar:
 			out = append(out, "<LITCHAR>"...)
 			_, n := utf8.DecodeRuneInString(string(p))
 			out = append(out, p[:n]...)
 			p = p[n:]
-		case CCL:
+		case ccl:
 			out = append(out, "<CCL>"...)
 			nc := p[0] // liczba znaków
 			p = p[1:]
@@ -72,7 +72,7 @@ func (p Pattern) String() string {
 				out = append(out, p[:n]...)
 				p = p[n:]
 			}
-		case NCCL:
+		case nccl:
 			out = append(out, "<NCCL>"...)
 			nc := p[0] // liczba znaków
 			p = p[1:]
@@ -81,7 +81,7 @@ func (p Pattern) String() string {
 				out = append(out, p[:n]...)
 				p = p[n:]
 			}
-		case CLOSURE:
+		case closure:
 			out = append(out, "<CLOSURE>"...)
 		default:
 			panic(fmt.Sprintf("Pattern.String: nie znany tag: %d", t))
@@ -103,19 +103,19 @@ func Makepat(arg string) (Pattern, error) {
 		r, n := utf8.DecodeRuneInString(s)
 
 		switch {
-		case r == S_BOL && len(s) == len(arg):
+		case r == s_bol && len(s) == len(arg):
 			last = len(out)
-			out = append(out, BOL)
+			out = append(out, bol)
 			s = s[n:]
-		case r == S_EOL && len(s) == n:
+		case r == s_eol && len(s) == n:
 			last = len(out)
-			out = append(out, EOL)
+			out = append(out, eol)
 			s = s[n:]
-		case r == S_ANY:
+		case r == s_any:
 			last = len(out)
-			out = append(out, ANY)
+			out = append(out, any)
 			s = s[n:]
-		case r == S_CCL:
+		case r == s_ccl:
 			last = len(out)
 			var (
 				chars []byte
@@ -127,9 +127,9 @@ func Makepat(arg string) (Pattern, error) {
 				return "", err
 			}
 			if isneg {
-				out = append(out, NCCL)
+				out = append(out, nccl)
 			} else {
-				out = append(out, CCL)
+				out = append(out, ccl)
 			}
 			nr := utf8.RuneCount(chars)
 			if nr > maxChars {
@@ -137,18 +137,18 @@ func Makepat(arg string) (Pattern, error) {
 			}
 			out = append(out, byte(nr))
 			out = append(out, chars...)
-		case r == S_CLOSURE && len(out) > 0:
+		case r == s_closure && len(out) > 0:
 			tag := out[last]
-			if tag == BOL ||
-				tag == EOL ||
-				tag == CLOSURE {
+			if tag == bol ||
+				tag == eol ||
+				tag == closure {
 				return Pattern(out), errors.New("'*' nie może być po BOL, EOL, CLOSURE")
 			}
 			out = stclose(out, last)
 			s = s[n:]
 		default:
 			last = len(out)
-			out = append(out, LITCHAR)
+			out = append(out, litchar)
 
 			var c rune
 			c, s = esc(s)
@@ -159,12 +159,12 @@ func Makepat(arg string) (Pattern, error) {
 	return Pattern(out), nil
 }
 
-// stclose dodaje znacznik CLOSURE do wzorca pat przed segmentem
+// stclose dodaje znacznik closure do wzorca pat przed segmentem
 // zaczynającym się od indeksu last.
 func stclose(pat []byte, last int) []byte {
 	pat = append(pat, 0)               // zwiększenie rozmiaru pat
 	_ = copy(pat[last+1:], pat[last:]) // przesunięcie w prawo
-	pat[last] = CLOSURE
+	pat[last] = closure
 	return pat
 }
 
@@ -174,7 +174,7 @@ func esc(s string) (rune, string) {
 	r, n := utf8.DecodeRuneInString(s)
 	s = s[n:]
 
-	if r != S_ESC {
+	if r != s_esc {
 		return r, s
 	}
 
@@ -203,19 +203,19 @@ func esc(s string) (rune, string) {
 func getccl(ss string) (chars []byte, isneg bool, s string, err error) {
 	s = ss
 	r, n := utf8.DecodeRuneInString(s)
-	if r != S_CCL {
-		err = fmt.Errorf("zły wzorzec: oczekiwano: %q, jest: %q", S_CCL, r)
+	if r != s_ccl {
+		err = fmt.Errorf("zły wzorzec: oczekiwano: %q, jest: %q", s_ccl, r)
 		return
 	}
 	s = s[n:]
 
 	r, n = utf8.DecodeRuneInString(s)
-	if r == S_NEGATE {
+	if r == s_negate {
 		isneg = true
 		s = s[n:]
 	}
 
-	chars, s, err = dodash(s, S_CCLEND)
+	chars, s, err = dodash(s, s_cclend)
 	if err != nil {
 		return
 	}
@@ -278,9 +278,4 @@ func isAlphanum(r rune) bool {
 		return true
 	}
 	return false
-}
-
-func Getpat(arg string) (Pattern, error) {
-	// TODO - czy ta funkcja jest potrzebna?
-	return Makepat(arg)
 }

@@ -44,7 +44,7 @@ func main() {
 		usage()
 	}
 
-	pat, err := pattern.Getpat(os.Args[1])
+	pat, err := pattern.Makepat(os.Args[1])
 	if err != nil {
 		log.Fatal(err)
 	}
