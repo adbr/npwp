@@ -9,7 +9,7 @@ import (
 	"unicode/utf8"
 )
 
-// Match dopasowuje wzorzec par w dowolnym miejscu stringu lin.
+// Match dopasowuje wzorzec pat w dowolnym miejscu stringu lin.
 func Match(lin string, pat Pattern) bool {
 	for i := range lin {
 		ok, _ := amatch(lin, i, pat, 0)

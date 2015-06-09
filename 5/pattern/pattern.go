@@ -90,10 +90,10 @@ func (p Pattern) String() string {
 	return string(out)
 }
 
-// Makepat kompiluje wzorzec arg do reprezentacji wewnętrznej Pattern.
-func Makepat(arg string) (Pattern, error) {
+// Makepat kompiluje wzorzec str do reprezentacji wewnętrznej Pattern.
+func Makepat(str string) (Pattern, error) {
 	var out []byte
-	s := arg[:]
+	s := str[:]
 	last := 0 // początek ostatnio dodanego wzorca
 
 	for {
@@ -103,7 +103,7 @@ func Makepat(arg string) (Pattern, error) {
 		r, n := utf8.DecodeRuneInString(s)
 
 		switch {
-		case r == s_bol && len(s) == len(arg):
+		case r == s_bol && len(s) == len(str):
 			last = len(out)
 			out = append(out, bol)
 			s = s[n:]
