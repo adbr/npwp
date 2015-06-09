@@ -3,7 +3,7 @@
 	+ test dla tego błędu
 + makepat: testy klas znaków
 + makepat: dodać domknięcia
-	Tak CLOSURE powinien być przed elementem wzorca, którego dotyczy.
+	Tag CLOSURE powinien być przed elementem wzorca, którego dotyczy.
 	Potrzebny jest indeks początku poprzedniej sekwencji wzorca
 	w out - tam trzeba wstawić tag CLOSURE, i całą zawartość out
 	przesunąć w prawo o długość tagu CLOSURE (czyli jeden).
