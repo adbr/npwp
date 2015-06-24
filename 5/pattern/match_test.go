@@ -362,7 +362,7 @@ func TestAmatch(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		ok, n := amatch(test.str, test.i, pat, test.j)
+		ok, n := Amatch(test.str, test.i, pat, test.j)
 		if ok != test.ok {
 			t.Errorf("#%d: (ok) oczekiwano: %v, jest: %v", i, test.ok, ok)
 		}

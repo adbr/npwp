@@ -12,7 +12,7 @@ import (
 // Match dopasowuje wzorzec pat w dowolnym miejscu stringu lin.
 func Match(lin string, pat Pattern) bool {
 	for i := range lin {
-		ok, _ := amatch(lin, i, pat, 0)
+		ok, _ := Amatch(lin, i, pat, 0)
 		if ok {
 			return true
 		}
@@ -20,10 +20,10 @@ func Match(lin string, pat Pattern) bool {
 	return false
 }
 
-// amatch dopasowuje wzorzec zaczynający się od pat[j] do stringu
+// Amatch dopasowuje wzorzec zaczynający się od pat[j] do stringu
 // zaczynającego się od str[offset]. Jeśli wzorzec pasuje, to zwraca
 // true i liczbę bajtów str pasujących do wzorca.
-func amatch(str string, offset int, pat Pattern, j int) (bool, int) {
+func Amatch(str string, offset int, pat Pattern, j int) (bool, int) {
 	i := offset
 	for j < len(pat) {
 		if pat[j] == closure {
@@ -43,7 +43,7 @@ func amatch(str string, offset int, pat Pattern, j int) (bool, int) {
 			// dopasuj pozostałą część stringu do pozostałej części
 			// wzorca; jeśli się nie da do cofaj się w stringu
 			for ii >= i {
-				ok, n := amatch(str, ii, pat, j+patsize(pat[j:]))
+				ok, n := Amatch(str, ii, pat, j+patsize(pat[j:]))
 				if ok {
 					return true, n + ii - offset
 				} else {

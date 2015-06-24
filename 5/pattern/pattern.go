@@ -151,7 +151,7 @@ func Makepat(str string) (Pattern, error) {
 			out = append(out, litchar)
 
 			var c rune
-			c, s = esc(s)
+			c, s = Esc(s)
 			out = appendUtf8(out, c)
 		}
 	}
@@ -168,9 +168,9 @@ func stclose(pat []byte, last int) []byte {
 	return pat
 }
 
-// esc zwraca pierwszy znak ze stringu s z uwzgędnieniem escape'owania.
+// Esc zwraca pierwszy znak ze stringu s z uwzgędnieniem escape'owania.
 // Zwraca string pomniejszony o sekwencję escapeową.
-func esc(s string) (rune, string) {
+func Esc(s string) (rune, string) {
 	r, n := utf8.DecodeRuneInString(s)
 	s = s[n:]
 
@@ -252,7 +252,7 @@ func dodash(ss string, delim rune) (chars []byte, s string, err error) {
 			}
 		} else {
 			var c rune
-			c, s = esc(s)
+			c, s = Esc(s)
 			chars = appendUtf8(chars, c)
 		}
 	}

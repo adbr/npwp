@@ -217,7 +217,7 @@ func TestEsc(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		r, s := esc(test.in)
+		r, s := Esc(test.in)
 		if r != test.r {
 			t.Errorf("#%d oczekiwano: %q, jest: %q", i, test.r, r)
 		}
