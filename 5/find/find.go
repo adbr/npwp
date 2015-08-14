@@ -9,7 +9,7 @@ import (
 	"log"
 	"os"
 
-	"npwp/5/pattern"
+	"github.com/adbr/npwp/5/pattern"
 )
 
 func usage() {

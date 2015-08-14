@@ -23,7 +23,7 @@ import (
 	"io"
 	"os"
 
-	"npwp/tab"
+	"github.com/adbr/npwp/tab"
 )
 
 func fatal(err error) {

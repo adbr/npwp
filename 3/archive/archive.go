@@ -65,7 +65,7 @@ import (
 	"log"
 	"os"
 
-	"npwp/3/archive/header"
+	"github.com/adbr/npwp/3/archive/header"
 )
 
 const (

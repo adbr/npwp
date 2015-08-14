@@ -12,7 +12,7 @@ import (
 	"os"
 	"unicode/utf8"
 
-	"npwp/5/pattern"
+	"github.com/adbr/npwp/5/pattern"
 )
 
 // Znak, który w tekście zastępującym oznacza dopasowany fragment tekstu.

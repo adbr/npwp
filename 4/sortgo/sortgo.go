@@ -27,8 +27,8 @@ import (
 	"log"
 	"os"
 
-	"code.google.com/p/go.text/collate"
-	"code.google.com/p/go.text/language"
+	"golang.org/x/text/collate"
+	"golang.org/x/text/language"
 )
 
 // func czyta i zwraca wszystkie wiersze z r.

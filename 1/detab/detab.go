@@ -62,7 +62,7 @@ import (
 	"io"
 	"os"
 
-	"npwp/tab"
+	"github.com/adbr/npwp/tab"
 )
 
 const usageStr = "usage: detab [-hi] [-t tablist] [file ...]"
