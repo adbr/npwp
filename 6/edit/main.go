@@ -72,29 +72,39 @@ var lnums Lnums
 // fragmancie lin i błąd jeśli wystąpił.
 func getlist(lin string, i int) (ii int, err error) {
 	var num int
+	lnums.nlines = 0
+
 	num, ii, err = getone(lin, i)
 	if err != nil {
 		return i, err
 	}
-	lnums.line1 = num
-	lnums.curln = num
-	lnums.nlines++
-	
-	r, w := utf8.DecodeRuneInString(lin[ii:])
-	if r != ',' {
-		return ii, err
+	if ii > i {
+		// istnieje numer wiersza
+		lnums.line1 = num
+		lnums.line2 = num
+		lnums.curln = num
+		lnums.nlines++
 	}
-	ii += w
-	
-	num, ii, err = getone(lin, ii)
-	if err != nil {
-		return ii, err
+	for {
+		r, w := utf8.DecodeRuneInString(lin[ii:])
+		if r != ',' {
+			break
+		}
+		ii += w
+
+		num, ii, err = getone(lin, ii)
+		if err != nil {
+			return i, err
+		}
+		lnums.line1 = lnums.line2
+		lnums.line2 = num
+		lnums.curln = num
+		lnums.nlines++
 	}
-	lnums.line2 = num
-	lnums.curln = num
-	lnums.nlines++
-	
-	return ii, nil
+	if lnums.nlines > 2 {
+		lnums.nlines = 2
+	}
+	return
 }
 
 // getone parsuje wyrażenie opisujące numer wiersza zawarte w lin,
@@ -140,9 +150,9 @@ func getnum(lin string, i int) (num int, ii int, err error) {
 		ii = i + w
 		return num, ii, nil
 	}
-	
+
 	// todo: obsługa wzorca
-	
+
 	num, ii = strToNum(lin, i)
 	return num, ii, nil
 }

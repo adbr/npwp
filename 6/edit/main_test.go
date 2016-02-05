@@ -251,7 +251,8 @@ func TestGetlist(t *testing.T) {
 		isErr bool   // czy powinien wystąpić błąd
 	}
 
-	tests := []TestCase{
+	var tests = []TestCase{
+		// kilka numerów wierszy
 		{
 			"12,34print",
 			0,
@@ -265,16 +266,70 @@ func TestGetlist(t *testing.T) {
 			5,
 			false,
 		},
+		{
+			"12,34,56print",
+			0,
+			Lnums{
+				line1:  34,
+				line2:  56,
+				nlines: 2,
+				curln:  56, // ?
+				lastln: 0,  // ?
+			},
+			8,
+			false,
+		},
+		{
+			"12,34,56,789print",
+			0,
+			Lnums{
+				line1:  56,
+				line2:  789,
+				nlines: 2,
+				curln:  789, // ?
+				lastln: 0,   // ?
+			},
+			12,
+			false,
+		},
+		// jeden numer wiersza
+		{
+			"12print",
+			0,
+			Lnums{
+				line1:  12,
+				line2:  12,
+				nlines: 1,
+				curln:  12,
+				lastln: 0,
+			},
+			2,
+			false,
+		},
+		// zero numerów wierszy
+		{
+			"print",
+			0,
+			Lnums{
+				line1:  0,
+				line2:  0,
+				nlines: 0,
+				curln:  0,
+				lastln: 0,
+			},
+			0,
+			false,
+		},
 	}
 
 	for i, tc := range tests {
-		lnums = Lnums{}
+		lnums = Lnums{} // globalna zmienna lnums
 		ii, err := getlist(tc.lin, tc.i)
 
 		if lnums != tc.lnums {
 			t.Errorf("tc %d: getlist(): lnums: oczekiwano: %v, jest: %v", i, tc.lnums, lnums)
 		}
-		
+
 		if ii != tc.ii {
 			t.Errorf("tc %d: getlist(): indeks po sparsowaniu: oczekiwano: %d, jest %d", i, tc.ii, ii)
 		}
