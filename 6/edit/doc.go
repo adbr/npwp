@@ -33,7 +33,7 @@ Numery wierszy są budowane z następujących elementów:
 	n		liczba dziesiętna
 	.		wiersz bieżący (kropka)
 	$		wiersz ostatni
-	/wzorzec/	wyszukiwanie kontekstowe w przód
+	/wzorzec/	wyszukiwanie kontekstowe wprzód
 	\wzorzec\	wyszukiwanie kontekstowe wstecz
 
 Elementy te mogą tworzyć wyrażenia zawierające + i -, na przykład:
