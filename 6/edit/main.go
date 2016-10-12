@@ -4,6 +4,7 @@ package main
 
 import (
 	"bufio"
+	"errors"
 	"flag"
 	"fmt"
 	"log"
@@ -11,6 +12,8 @@ import (
 	"unicode"
 	"unicode/utf8"
 )
+
+var ErrNotNumber = errors.New("koniec danych wejściowych")
 
 func usage() {
 	usageStr := "sposób użycia: edit [plik]"
@@ -48,8 +51,8 @@ type Lnums struct {
 	lastln int // wiersz ostatni - wartość $
 }
 
-// Funkcja pomocnicza dla wydruku wartości typu Lnums. Implementacja
-// interfejsu fmt.Stringer.
+// Funkcja pomocnicza zwracająca wartość typu Lnums jako string.
+// Implementuje interfejs fmt.Stringer.
 func (l Lnums) String() string {
 	s := ""
 	s += fmt.Sprint("Lnums: {\n")
@@ -79,18 +82,20 @@ func getlist(lin string, i int) (ii int, err error) {
 		return i, err
 	}
 	if ii > i {
-		// istnieje numer wiersza
-		lnums.line1 = num
+		// istnieje co najmniej jeden numer wiersza
+		// todo: EOF ?
 		lnums.line2 = num
-		lnums.curln = num
 		lnums.nlines++
 	}
 	for {
 		r, w := utf8.DecodeRuneInString(lin[ii:])
-		if r != ',' {
+		if (r != ',') && (r != ';') {
 			break
 		}
 		ii += w
+		if r == ';' {
+			lnums.curln = num
+		}
 
 		num, ii, err = getone(lin, ii)
 		if err != nil {
@@ -98,11 +103,17 @@ func getlist(lin string, i int) (ii int, err error) {
 		}
 		lnums.line1 = lnums.line2
 		lnums.line2 = num
-		lnums.curln = num
 		lnums.nlines++
 	}
 	if lnums.nlines > 2 {
 		lnums.nlines = 2
+	}
+	if lnums.nlines == 1 {
+		lnums.line1 = lnums.line2
+	}
+	if lnums.nlines == 0 {
+		lnums.line1 = lnums.curln
+		lnums.line2 = lnums.curln
 	}
 	return
 }
@@ -134,8 +145,8 @@ func getone(lin string, i int) (num int, ii int, err error) {
 	return num, ii, err
 }
 
-// getnum parsuje jeden element (składnik) wyrażenia opisującego numer
-// wiersza (liczba, kropka, $ lub wzorzec) zaczynając od znaku o
+// getnum parsuje jeden element wyrażenia opisującego numer wiersza
+// (liczba całkowita, . (kropka), $ lub wzorzec) zaczynając od znaku o
 // indeksie i. Zwraca pobrany numer i następną pozycję w stringu lin.
 // Używa (tylko do czytania) zmiennej globalnej lnums.
 func getnum(lin string, i int) (num int, ii int, err error) {
@@ -205,4 +216,56 @@ func strToNum(s string, i int) (num, ii int) {
 		ii = i
 	}
 	return
+}
+
+// parseNumber parsuje liczbę całkowitą znajdującą się na początku
+// stringu s. Zwraca liczbę, jej długość w stringu i błąd jeśli
+// wystąpił. Białe znaki występujące przed liczbą są pomijane; liczba
+// może być poprzedzona znakiem + lub -; parsowanie liczby kończy się
+// po napotkania znaku nie będącego cyfrą lub końca stringu. Nie
+// sprawdza przepełnienia gdy liczba w stringu jest większa niż
+// maksymalna wartość typu int. Gdy na początku stringu nie ma liczby
+// to zwraca błąd ErrNotNumber oraz num i width równe 0.
+func parseNumber(s string) (num, width int, err error) {
+	i := 0 // indeks w stringu s
+
+	// pomiń początkowe spacje
+	for {
+		r, w := utf8.DecodeRuneInString(s[i:])
+		if !unicode.IsSpace(r) {
+			break
+		}
+		i += w
+	}
+
+	// parsuj znak liczby
+	sign := 1
+	r, w := utf8.DecodeRuneInString(s[i:])
+	switch r {
+	case '+':
+		i += w
+	case '-':
+		i += w
+		sign = -1
+	}
+
+	// parsuj liczbę całkowitą
+	n := 0
+	isnum := false
+	for {
+		r, w := utf8.DecodeRuneInString(s[i:])
+		if !unicode.IsDigit(r) {
+			break
+		}
+		d := int(r - '0')
+		n = n*10 + d
+		isnum = true
+		i += w
+	}
+	n *= sign
+
+	if !isnum {
+		return 0, 0, ErrNotNumber
+	}
+	return n, i, nil
 }
