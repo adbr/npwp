@@ -28,13 +28,13 @@ func main() {
 	scanner := bufio.NewScanner(os.Stdin)
 	for scanner.Scan() {
 		line := scanner.Text()
-		i, err := getlist(line, 0)
+		w, err := getlist(line)
 		if err != nil {
 			log.Print(err)
 			continue
 		}
 		fmt.Print(lnums)
-		fmt.Printf("reszta wiersza: %s\n", line[i:])
+		fmt.Printf("reszta wiersza: %s\n", line[w:])
 	}
 	if err := scanner.Err(); err != nil {
 		log.Fatal(err)
@@ -69,42 +69,43 @@ func (l Lnums) String() string {
 // ostatniego polecenia.
 var lnums Lnums
 
-// getlist parsuje numery wierszy zawarte w lin począwszy od znaku o
-// indeksie i. Po sparsowaniu numerów wierszy ustawia pola zmiennej
-// globalnej lnums. Zwraca indeks znaku występującego po sparsowanym
-// fragmancie lin i błąd jeśli wystąpił.
-func getlist(lin string, i int) (ii int, err error) {
-	var num int
+// getlist parsuje listę wyrażeń opisujących numery wierszy w stringu
+// s i ustawia pola w zmiennej globalnej lnums. Zwraca długość listy
+// wyrażeń w stringu s i błąd jeśli wystąpił. Elementy listy mogą myć
+// oddzielone znakiem ',' lub ';'. Przykłady listy wyrażeń: '12,34',
+// '12;34', '12,23,45', '.+1,$-2'.
+func getlist(s string) (width int, err error) {
+	i := 0 // indeks w stringu s
 	lnums.nlines = 0
 
-	num, ii, err = getone(lin, i)
+	num, w, err := getone(s[i:])
 	if err != nil {
-		return i, err
+		return w, err
 	}
-	if ii > i {
-		// istnieje co najmniej jeden numer wiersza
-		// todo: EOF ?
-		lnums.line2 = num
-		lnums.nlines++
-	}
+	lnums.line2 = num
+	lnums.nlines++
+	i += w
+
 	for {
-		r, w := utf8.DecodeRuneInString(lin[ii:])
+		r, w := utf8.DecodeRuneInString(s[i:])
 		if (r != ',') && (r != ';') {
 			break
 		}
-		ii += w
+		i += w
 		if r == ';' {
 			lnums.curln = num
 		}
 
-		num, ii, err = getone(lin, ii)
+		num, w, err := getone(s[i:])
 		if err != nil {
-			return i, err
+			return w, err
 		}
 		lnums.line1 = lnums.line2
 		lnums.line2 = num
 		lnums.nlines++
+		i += w
 	}
+	
 	if lnums.nlines > 2 {
 		lnums.nlines = 2
 	}
@@ -115,107 +116,67 @@ func getlist(lin string, i int) (ii int, err error) {
 		lnums.line1 = lnums.curln
 		lnums.line2 = lnums.curln
 	}
-	return
+	return i, nil
 }
 
-// getone parsuje wyrażenie opisujące numer wiersza zawarte w lin,
-// zaczynając parsowanie od znaku o indeksie i. Wyrażenie może
-// zawierać operatory + i -. Zwraca obliczony numer wiersza i następną
-// pozycję w stringu lin. Przykłady wyrażeń: '.+3', '$-5'.
-func getone(lin string, i int) (num int, ii int, err error) {
-	num, ii, err = getnum(lin, i)
+// getone parsuje wyrażenie opisujące numer wiersza znajdujące się na
+// początku stringu s. Zwraca obliczony numer wiersza, długość
+// wyrażenia w stringu s i błąd jeśli wystąpił. Wyrażenie może
+// zawierać operatory '+' i '-'. Przykłady wyrażeń: '.+3', '$-5',
+// '5+1', '5'.
+func getone(s string) (num, width int, err error) {
+	i := 0 // indeks w stringu s
+
+	// pierwszy operand (numer) musi wystąpić
+	num, w, err := getnum(s)
 	if err != nil {
-		return num, ii, err
+		return num, w, err
 	}
-	r, w := utf8.DecodeRuneInString(lin[ii:])
-	if r == '+' || r == '-' {
-		ii += w
-		var n int
-		n, ii, err = getnum(lin, ii)
-		if err != nil {
-			return n, ii, err
-		}
-		if r == '+' {
-			num += n
-		}
-		if r == '-' {
-			num -= n
-		}
-	}
-	return num, ii, err
-}
+	i += w
 
-// getnum parsuje jeden element wyrażenia opisującego numer wiersza
-// (liczba całkowita, . (kropka), $ lub wzorzec) zaczynając od znaku o
-// indeksie i. Zwraca pobrany numer i następną pozycję w stringu lin.
-// Używa (tylko do czytania) zmiennej globalnej lnums.
-func getnum(lin string, i int) (num int, ii int, err error) {
-	r, w := utf8.DecodeRuneInString(lin[i:])
-	if r == '.' {
-		num = lnums.curln
-		ii = i + w
-		return num, ii, nil
-	}
-	if r == '$' {
-		num = lnums.lastln
-		ii = i + w
-		return num, ii, nil
-	}
-
-	// todo: obsługa wzorca
-
-	num, ii = strToNum(lin, i)
-	return num, ii, nil
-}
-
-// strToNum parsuje liczbę całkowitą zawartą w s od indeksu i, zwraca
-// wartość liczby jako num i indeks ii wskazujący na pierwszy znak
-// poza liczbą. Kończy parsowanie na znaku nie będącym cyfrą. Liczba
-// może być poprzedzona sekwencją białych znaków i znakiem liczby. Gdy
-// na pozycji i nie ma liczby, zwraca 0 i indeks ii równy początkowemu
-// indeksowi i, czyli w przypadku błędu zwraca 0 i indeks nie jest
-// przsuwany.
-func strToNum(s string, i int) (num, ii int) {
-	ii = i
-	// pomiń białe znaki
-	for {
-		r, w := utf8.DecodeRuneInString(s[i:])
-		if !unicode.IsSpace(r) {
-			break
-		}
-		i += w
-	}
-
-	// parsuj znak liczby
+	// czy wystąpił operator?
 	r, w := utf8.DecodeRuneInString(s[i:])
-	sign := 1
 	switch r {
 	case '+':
 		i += w
-	case '-':
-		sign = -1
-		i += w
-	}
-
-	// parsuj liczbę
-	isNum := false
-	for {
-		r, w := utf8.DecodeRuneInString(s[i:])
-		if !unicode.IsDigit(r) {
-			break
+		n, w, err := getnum(s[i:])
+		if err != nil {
+			return n, w, err
 		}
-		d := int(r - '0')
-		num = num*10 + d
 		i += w
-		isNum = true
+		num += n
+	case '-':
+		i += w
+		n, w, err := getnum(s[i:])
+		if err != nil {
+			return n, w, err
+		}
+		i += w
+		num -= n
 	}
+	
+	return num, i, nil
+}
 
-	num *= sign
-	if isNum {
-		// zmień indeks tylko gdy została wykryta liczba
-		ii = i
+// getnum parsuje numer wiersza znajdujący się na początku stringu s.
+// Zwraca numer wiersza, jego długość w stringu s i błąd jeśli
+// wystąpił. Numer wiersza może być liczbą całkowitą, znakiem '.'
+// (kropka), znakiem '$' (dolar) lub wzorcem. Używa zmiennej globalnej
+// lnums (tylko do czytania).
+func getnum(s string) (num, width int, err error) {
+	r, w := utf8.DecodeRuneInString(s)
+	switch r {
+	case '.':
+		num = lnums.curln
+		return num, w, nil
+	case '$':
+		num = lnums.lastln
+		return num, w, nil
+	default:
+		// TODO: obsługa wzorca
+		num, w, err := parseNumber(s)
+		return num, w, err
 	}
-	return
 }
 
 // parseNumber parsuje liczbę całkowitą znajdującą się na początku
