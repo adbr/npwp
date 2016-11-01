@@ -13,7 +13,7 @@ import (
 	"unicode/utf8"
 )
 
-var ErrNotNumber = errors.New("koniec danych wejściowych")
+var ErrNotNumber = errors.New("nie wystąpiła liczba")
 
 func usage() {
 	usageStr := "sposób użycia: edit [plik]"
@@ -105,7 +105,7 @@ func getlist(s string) (width int, err error) {
 		lnums.nlines++
 		i += w
 	}
-	
+
 	if lnums.nlines > 2 {
 		lnums.nlines = 2
 	}
@@ -154,29 +154,44 @@ func getone(s string) (num, width int, err error) {
 		i += w
 		num -= n
 	}
-	
+
 	return num, i, nil
 }
 
 // getnum parsuje numer wiersza znajdujący się na początku stringu s.
 // Zwraca numer wiersza, jego długość w stringu s i błąd jeśli
-// wystąpił. Numer wiersza może być liczbą całkowitą, znakiem '.'
-// (kropka), znakiem '$' (dolar) lub wzorcem. Używa zmiennej globalnej
-// lnums (tylko do czytania).
+// wystąpił. Numer wiersza może być liczbą całkowitą (jak w funkcji
+// parseNumber), znakiem '.', znakiem '$' lub wzorcem. Pomija
+// początkowe białe znaki. Używa zmiennej globalnej lnums (tylko do
+// odczytu) w celu pobrania wartości dla '.' i '$'. Jeśli na początku
+// stringu nie ma numeru wiersza to zwraca błąd ErrNotNumber oraz num
+// i width równe 0.
 func getnum(s string) (num, width int, err error) {
-	r, w := utf8.DecodeRuneInString(s)
+	i := 0 // indeks w stringu s
+
+	w := skipSpace(s)
+	i += w
+
+	r, w := utf8.DecodeRuneInString(s[i:])
 	switch r {
 	case '.':
+		i += w
 		num = lnums.curln
-		return num, w, nil
+		return num, i, nil
 	case '$':
+		i += w
 		num = lnums.lastln
-		return num, w, nil
-	default:
-		// TODO: obsługa wzorca
-		num, w, err := parseNumber(s)
-		return num, w, err
+		return num, i, nil
 	}
+
+	// TODO: obsługa wzorca
+	
+	num, w, err = parseNumber(s[i:])
+	if err != nil {
+		return 0, 0, err
+	}
+	i += w
+	return num, i, nil
 }
 
 // parseNumber parsuje liczbę całkowitą znajdującą się na początku
@@ -229,4 +244,19 @@ func parseNumber(s string) (num, width int, err error) {
 		return 0, 0, ErrNotNumber
 	}
 	return n, i, nil
+}
+
+// skipSpace zwraca długość (w bajtach) początkowych białych znaków w
+// stringu s. Białym znakiem jest znak spełniający warunek
+// unicode.IsSpace().
+func skipSpace(s string) (width int) {
+	i := 0
+	for {
+		r, w := utf8.DecodeRuneInString(s[i:])
+		if !unicode.IsSpace(r) {
+			break
+		}
+		i += w
+	}
+	return i
 }
