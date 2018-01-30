@@ -20,7 +20,9 @@ func TestSkipSpace(t *testing.T) {
 		{"\t", 1},
 		{" \t\v", 3},
 		{"aaa", 0},
-		{" aaa", 1},
+		{" ąąą", 1},
+		{"  ąąą", 2},
+		{"   ąąą", 3},
 		{" \t 123", 3},
 	}
 
@@ -106,13 +108,15 @@ func TestGetnum(t *testing.T) {
 		{".", 22, 1, nil},
 		{"$print", 55, 1, nil},
 		{"$", 55, 1, nil},
-		{"print", 0, 0, ErrNotNumber},
 		{"0print", 0, 1, nil},
 		{" \t12print", 12, 4, nil},
 		{" .print", 22, 2, nil},
-		{" $", 55, 2, nil},
+		{"  $", 55, 3, nil},
+		{" ..", 22, 2, nil},
+		{"$.", 55, 1, nil},
+		{"print", 0, 0, ErrNotNumber},
+		{"", 0, 0, ErrNotNumber},
 		// TODO: obsługa wzorca
-		// TODO: przypadki błędne?
 	}
 
 	for _, tc := range tests {
@@ -149,17 +153,51 @@ func TestGetone(t *testing.T) {
 		{"  .+3print", 25, 5, nil},
 		{"  $-3print", 52, 5, nil},
 		{"  2+5print", 7, 5, nil},
+		{"print", 0, 0, ErrNotNumber},
+		{"+print", 0, 0, ErrNotNumber},
+		{" -print", 0, 0, ErrNotNumber},
+		{"2+print", 0, 0, &syntaxError{
+			line: "2+print",
+			pos:  2,
+			err:  ErrMissingNumber,
+		}},
+		{"2-print", 0, 0, &syntaxError{
+			line: "2-print",
+			pos:  2,
+			err:  ErrMissingNumber,
+		}},
+		{" .+print", 0, 0, &syntaxError{
+			line: " .+print",
+			pos:  3,
+			err:  ErrMissingNumber,
+		}},
+		{" .-print", 0, 0, &syntaxError{
+			line: " .-print",
+			pos:  3,
+			err:  ErrMissingNumber,
+		}},
 		// TODO: spacje dookoła operatorów?
-		// TODO: przypadki błędne?
 	}
 
 	for _, tc := range tests {
 		name := fmt.Sprintf("getone(%q)", tc.s)
 		check := func(t *testing.T) {
 			n, w, err := getone(tc.s)
-			if n != tc.num || w != tc.width || err != tc.err {
-				t.Errorf("wynik: (%d, %d, %#v), oczekiwano: (%d, %d, %#v)",
-					n, w, err, tc.num, tc.width, tc.err)
+			if n != tc.num || w != tc.width {
+				t.Errorf("wynik: (%d, %d), oczekiwano: (%d, %d)",
+					n, w, tc.num, tc.width)
+			}
+			if e0, ok := tc.err.(*syntaxError) ; ok {
+				e1, ok := err.(*syntaxError)
+				if !ok || *e1 != *e0 {
+					t.Errorf("error: %#v, oczekiwano: %#v",
+						*e1, *e0)
+				}
+			} else {
+				if err != tc.err {
+					t.Errorf("error: %#v, oczekiwano: %#v",
+						err, tc.err)
+				}
 			}
 		}
 		t.Run(name, check)

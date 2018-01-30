@@ -14,10 +14,22 @@ import (
 )
 
 var ErrNotNumber = errors.New("nie wystąpiła liczba")
+var ErrMissingNumber = errors.New("missing number")
+
+type syntaxError struct {
+	line string // parsowany string
+	pos  int    // miejsce (indeks) w line zawierające błąd
+	err  error  // rodzaj błędu
+}
+
+func (e *syntaxError) Error() string {
+	return fmt.Sprintf("syntax error in %q on position %d: %v",
+		e.line, e.pos, e.err)
+}
 
 func usage() {
-	usageStr := "sposób użycia: edit [plik]"
-	fmt.Fprintln(os.Stderr, usageStr)
+	s := "sposób użycia: edit [plik]"
+	fmt.Fprintln(os.Stderr, s)
 	os.Exit(1)
 }
 
@@ -123,14 +135,18 @@ func getlist(s string) (width int, err error) {
 // początku stringu s. Zwraca obliczony numer wiersza, długość
 // wyrażenia w stringu s i błąd jeśli wystąpił. Wyrażenie może
 // zawierać operatory '+' i '-'. Przykłady wyrażeń: '.+3', '$-5',
-// '5+1', '5'.
+// '5+1', '5'. Jeśli nie ma numeru wiersza to zwraca błąd ErrNotNumber
+// i num oraz width równe 0. Jeśli
+//
+// TODO: zgłaszanie błędów składniowych - np. po operatorze brakuje
+// liczby
 func getone(s string) (num, width int, err error) {
 	i := 0 // indeks w stringu s
 
-	// pierwszy operand (numer) musi wystąpić
+	// pierwszy operand
 	num, w, err := getnum(s)
 	if err != nil {
-		return num, w, err
+		return 0, 0, err
 	}
 	i += w
 
@@ -140,16 +156,28 @@ func getone(s string) (num, width int, err error) {
 	case '+':
 		i += w
 		n, w, err := getnum(s[i:])
+		if err == ErrNotNumber {
+			return 0, 0, &syntaxError{
+				line: s,
+				pos: i,
+				err: ErrMissingNumber}
+		}
 		if err != nil {
-			return n, w, err
+			return 0, 0, err
 		}
 		i += w
 		num += n
 	case '-':
 		i += w
 		n, w, err := getnum(s[i:])
+		if err == ErrNotNumber {
+			return 0, 0, &syntaxError{
+				line: s,
+				pos: i,
+				err: ErrMissingNumber}
+		}
 		if err != nil {
-			return n, w, err
+			return 0, 0, err
 		}
 		i += w
 		num -= n
@@ -166,6 +194,8 @@ func getone(s string) (num, width int, err error) {
 // odczytu) w celu pobrania wartości dla '.' i '$'. Jeśli na początku
 // stringu nie ma numeru wiersza to zwraca błąd ErrNotNumber oraz num
 // i width równe 0.
+//
+// TODO: obsługa wzorca
 func getnum(s string) (num, width int, err error) {
 	i := 0 // indeks w stringu s
 
@@ -176,22 +206,18 @@ func getnum(s string) (num, width int, err error) {
 	switch r {
 	case '.':
 		i += w
-		num = lnums.curln
-		return num, i, nil
+		return lnums.curln, i, nil
 	case '$':
 		i += w
-		num = lnums.lastln
+		return lnums.lastln, i, nil
+	default:
+		num, w, err = parseNumber(s[i:])
+		if err != nil {
+			return 0, 0, err
+		}
+		i += w
 		return num, i, nil
 	}
-
-	// TODO: obsługa wzorca
-	
-	num, w, err = parseNumber(s[i:])
-	if err != nil {
-		return 0, 0, err
-	}
-	i += w
-	return num, i, nil
 }
 
 // parseNumber parsuje liczbę całkowitą znajdującą się na początku
@@ -206,13 +232,8 @@ func parseNumber(s string) (num, width int, err error) {
 	i := 0 // indeks w stringu s
 
 	// pomiń początkowe spacje
-	for {
-		r, w := utf8.DecodeRuneInString(s[i:])
-		if !unicode.IsSpace(r) {
-			break
-		}
-		i += w
-	}
+	w := skipSpace(s)
+	i += w
 
 	// parsuj znak liczby
 	sign := 1
@@ -248,7 +269,8 @@ func parseNumber(s string) (num, width int, err error) {
 
 // skipSpace zwraca długość (w bajtach) początkowych białych znaków w
 // stringu s. Białym znakiem jest znak spełniający warunek
-// unicode.IsSpace().
+// unicode.IsSpace(). Mając długość początkowych białych znaków w,
+// można je pominąć przy użyciu wyrażenia s[w:].
 func skipSpace(s string) (width int) {
 	i := 0
 	for {
