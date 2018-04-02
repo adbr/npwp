@@ -7,14 +7,13 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"log"
 	"os"
 	"unicode"
 	"unicode/utf8"
 )
 
-var ErrNotNumber = errors.New("nie wystąpiła liczba")
-var ErrMissingNumber = errors.New("missing number")
+var errNotNumber = errors.New("not number")
+var errMissingNumber = errors.New("missing number")
 
 type syntaxError struct {
 	line string // parsowany string
@@ -27,34 +26,37 @@ func (e *syntaxError) Error() string {
 		e.line, e.pos, e.err)
 }
 
-func usage() {
-	s := "sposób użycia: edit [plik]"
-	fmt.Fprintln(os.Stderr, s)
-	os.Exit(1)
-}
+const usageText = "sposób użycia: edit [plik]"
 
 func main() {
-	flag.Usage = usage
+	h := flag.Bool("h", false, "display usage")
+	flag.Usage = func() {
+		fmt.Fprintln(os.Stderr, usageText)
+	}
 	flag.Parse()
+	if *h {
+		fmt.Println(usageText)
+		os.Exit(0)
+	}
 
-	scanner := bufio.NewScanner(os.Stdin)
-	for scanner.Scan() {
-		line := scanner.Text()
+	stdin := bufio.NewScanner(os.Stdin)
+	for stdin.Scan() {
+		line := stdin.Text()
 		w, err := getlist(line)
 		if err != nil {
-			log.Print(err)
+			fmt.Fprintf(os.Stderr, "edit: %s\n", err)
 			continue
 		}
 		fmt.Print(lnums)
 		fmt.Printf("reszta wiersza: %s\n", line[w:])
 	}
-	if err := scanner.Err(); err != nil {
-		log.Fatal(err)
+	if err := stdin.Err(); err != nil {
+		fmt.Fprintf(os.Stderr, "edit: %s\n", err)
+		os.Exit(1)
 	}
 }
 
-// Typ Lnums zawiera informacje o numerach wierszy dla następnego
-// polecenia.
+// Typ Lnums zawiera informacje o numerach wierszy dla polecenia.
 type Lnums struct {
 	line1  int // pierwszy numer wiersza
 	line2  int // drugi numer wiersza
@@ -135,7 +137,7 @@ func getlist(s string) (width int, err error) {
 // początku stringu s. Zwraca obliczony numer wiersza, długość
 // wyrażenia w stringu s i błąd jeśli wystąpił. Wyrażenie może
 // zawierać operatory '+' i '-'. Przykłady wyrażeń: '.+3', '$-5',
-// '5+1', '5'. Jeśli nie ma numeru wiersza to zwraca błąd ErrNotNumber
+// '5+1', '5'. Jeśli nie ma numeru wiersza to zwraca błąd errNotNumber
 // i num oraz width równe 0. Jeśli
 //
 // TODO: zgłaszanie błędów składniowych - np. po operatorze brakuje
@@ -156,11 +158,11 @@ func getone(s string) (num, width int, err error) {
 	case '+':
 		i += w
 		n, w, err := getnum(s[i:])
-		if err == ErrNotNumber {
+		if err == errNotNumber {
 			return 0, 0, &syntaxError{
 				line: s,
-				pos: i,
-				err: ErrMissingNumber}
+				pos:  i,
+				err:  errMissingNumber}
 		}
 		if err != nil {
 			return 0, 0, err
@@ -170,11 +172,11 @@ func getone(s string) (num, width int, err error) {
 	case '-':
 		i += w
 		n, w, err := getnum(s[i:])
-		if err == ErrNotNumber {
+		if err == errNotNumber {
 			return 0, 0, &syntaxError{
 				line: s,
-				pos: i,
-				err: ErrMissingNumber}
+				pos:  i,
+				err:  errMissingNumber}
 		}
 		if err != nil {
 			return 0, 0, err
@@ -192,7 +194,7 @@ func getone(s string) (num, width int, err error) {
 // parseNumber), znakiem '.', znakiem '$' lub wzorcem. Pomija
 // początkowe białe znaki. Używa zmiennej globalnej lnums (tylko do
 // odczytu) w celu pobrania wartości dla '.' i '$'. Jeśli na początku
-// stringu nie ma numeru wiersza to zwraca błąd ErrNotNumber oraz num
+// stringu nie ma numeru wiersza to zwraca błąd errNotNumber oraz num
 // i width równe 0.
 //
 // TODO: obsługa wzorca
@@ -227,7 +229,7 @@ func getnum(s string) (num, width int, err error) {
 // po napotkania znaku nie będącego cyfrą lub końca stringu. Nie
 // sprawdza przepełnienia gdy liczba w stringu jest większa niż
 // maksymalna wartość typu int. Gdy na początku stringu nie ma liczby
-// to zwraca błąd ErrNotNumber oraz num i width równe 0.
+// to zwraca błąd errNotNumber oraz num i width równe 0.
 func parseNumber(s string) (num, width int, err error) {
 	i := 0 // indeks w stringu s
 
@@ -262,7 +264,7 @@ func parseNumber(s string) (num, width int, err error) {
 	n *= sign
 
 	if !isnum {
-		return 0, 0, ErrNotNumber
+		return 0, 0, errNotNumber
 	}
 	return n, i, nil
 }
@@ -271,7 +273,7 @@ func parseNumber(s string) (num, width int, err error) {
 // stringu s. Białym znakiem jest znak spełniający warunek
 // unicode.IsSpace(). Mając długość początkowych białych znaków w,
 // można je pominąć przy użyciu wyrażenia s[w:].
-func skipSpace(s string) (width int) {
+func skipSpace(s string) int {
 	i := 0
 	for {
 		r, w := utf8.DecodeRuneInString(s[i:])

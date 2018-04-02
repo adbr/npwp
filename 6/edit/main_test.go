@@ -8,12 +8,11 @@ import (
 )
 
 func TestSkipSpace(t *testing.T) {
-	type testCase struct {
-		s string
-		w int
+	type test struct {
+		s string // string wejściowy
+		w int    // liczba początkowych białych znaków
 	}
-
-	tests := []testCase{
+	var tests = []test{
 		{"", 0},
 		{" ", 1},
 		{"  ", 2},
@@ -24,17 +23,15 @@ func TestSkipSpace(t *testing.T) {
 		{"  ąąą", 2},
 		{"   ąąą", 3},
 		{" \t 123", 3},
+		{" \t\v  123   ", 5},
 	}
 
 	for _, tc := range tests {
-		name := fmt.Sprintf("skipSpace(%q)", tc.s)
-		check := func(t *testing.T) {
-			w := skipSpace(tc.s)
-			if w != tc.w {
-				t.Errorf("oczekiwano: %d, jest: %d", tc.w, w)
-			}
+		w := skipSpace(tc.s)
+		if w != tc.w {
+			t.Errorf("skipSpace(%q) = %d, oczekiwano %d",
+				tc.s, w, tc.w)
 		}
-		t.Run(name, check)
 	}
 }
 
@@ -66,14 +63,14 @@ func TestParseNumber(t *testing.T) {
 		{"1234ąę", 1234, 4, nil},
 		{"-123+", -123, 4, nil},
 		{"   +123xxx", 123, 7, nil},
-		{"", 0, 0, ErrNotNumber},
-		{"abc123", 0, 0, ErrNotNumber},
-		{"   abc", 0, 0, ErrNotNumber},
-		{"   +abc", 0, 0, ErrNotNumber},
-		{"   -abc", 0, 0, ErrNotNumber},
-		{"+a", 0, 0, ErrNotNumber},
-		{"ą", 0, 0, ErrNotNumber},
-		{"++123", 0, 0, ErrNotNumber},
+		{"", 0, 0, errNotNumber},
+		{"abc123", 0, 0, errNotNumber},
+		{"   abc", 0, 0, errNotNumber},
+		{"   +abc", 0, 0, errNotNumber},
+		{"   -abc", 0, 0, errNotNumber},
+		{"+a", 0, 0, errNotNumber},
+		{"ą", 0, 0, errNotNumber},
+		{"++123", 0, 0, errNotNumber},
 	}
 
 	for _, tc := range tests {
@@ -114,8 +111,8 @@ func TestGetnum(t *testing.T) {
 		{"  $", 55, 3, nil},
 		{" ..", 22, 2, nil},
 		{"$.", 55, 1, nil},
-		{"print", 0, 0, ErrNotNumber},
-		{"", 0, 0, ErrNotNumber},
+		{"print", 0, 0, errNotNumber},
+		{"", 0, 0, errNotNumber},
 		// TODO: obsługa wzorca
 	}
 
@@ -153,28 +150,28 @@ func TestGetone(t *testing.T) {
 		{"  .+3print", 25, 5, nil},
 		{"  $-3print", 52, 5, nil},
 		{"  2+5print", 7, 5, nil},
-		{"print", 0, 0, ErrNotNumber},
-		{"+print", 0, 0, ErrNotNumber},
-		{" -print", 0, 0, ErrNotNumber},
+		{"print", 0, 0, errNotNumber},
+		{"+print", 0, 0, errNotNumber},
+		{" -print", 0, 0, errNotNumber},
 		{"2+print", 0, 0, &syntaxError{
 			line: "2+print",
 			pos:  2,
-			err:  ErrMissingNumber,
+			err:  errMissingNumber,
 		}},
 		{"2-print", 0, 0, &syntaxError{
 			line: "2-print",
 			pos:  2,
-			err:  ErrMissingNumber,
+			err:  errMissingNumber,
 		}},
 		{" .+print", 0, 0, &syntaxError{
 			line: " .+print",
 			pos:  3,
-			err:  ErrMissingNumber,
+			err:  errMissingNumber,
 		}},
 		{" .-print", 0, 0, &syntaxError{
 			line: " .-print",
 			pos:  3,
-			err:  ErrMissingNumber,
+			err:  errMissingNumber,
 		}},
 		// TODO: spacje dookoła operatorów?
 	}
@@ -187,7 +184,7 @@ func TestGetone(t *testing.T) {
 				t.Errorf("wynik: (%d, %d), oczekiwano: (%d, %d)",
 					n, w, tc.num, tc.width)
 			}
-			if e0, ok := tc.err.(*syntaxError) ; ok {
+			if e0, ok := tc.err.(*syntaxError); ok {
 				e1, ok := err.(*syntaxError)
 				if !ok || *e1 != *e0 {
 					t.Errorf("error: %#v, oczekiwano: %#v",
